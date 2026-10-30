@@ -1,0 +1,6 @@
+{
+  "name": "DirectCraft — Фейковый Instagram Direct",
+  "description": "Telegram Mini App для создания реалистичных скриншотов переписок в Instagram Direct (iOS и Android) с селебрити и своими персонажами.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
