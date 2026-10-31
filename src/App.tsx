@@ -76,6 +76,8 @@ export default function App() {
     showSeenStatus: true,
     showProfileIntro: true,
     showBatteryPercentage: true,
+    storyRing: 'unseen',
+    aspectRatio: '9:16',
     dateDivider: 'Сегодня, 9:38',
     bubbleTheme: 'solid_0095f6',
   });
@@ -667,6 +669,18 @@ export default function App() {
                     onTriggerVideoCall={() => handleAddSystemCall('video')}
                     onOpenSettings={() => setIsSettingsModalOpen(true)}
                     onOpenStarsModal={() => setIsStarsModalOpen(true)}
+                    onToggleStoryRing={() => {
+                      triggerHaptic('selection');
+                      setSettings((prev) => ({
+                        ...prev,
+                        storyRing:
+                          prev.storyRing === 'none'
+                            ? 'unseen'
+                            : prev.storyRing === 'unseen'
+                            ? 'seen'
+                            : 'none',
+                      }));
+                    }}
                   />
                 </div>
               </div>

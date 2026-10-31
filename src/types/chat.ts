@@ -38,6 +38,8 @@ export type BubbleTheme =
 export type OsType = 'ios' | 'android';
 export type AndroidNavStyle = 'gesture' | 'buttons';
 
+export type StoryRingStatus = 'none' | 'unseen' | 'seen';
+
 export interface DeviceSettings {
   time: string;
   batteryLevel: number;
@@ -47,7 +49,10 @@ export interface DeviceSettings {
   showSeenStatus: boolean;
   showProfileIntro: boolean;
   showBatteryPercentage: boolean;
+  storyRing: StoryRingStatus;
+  aspectRatio: '9:16' | 'auto';
   dateDivider: string;
   bubbleTheme: BubbleTheme;
 }
+
 

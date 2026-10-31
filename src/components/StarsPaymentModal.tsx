@@ -34,20 +34,26 @@ export const StarsPaymentModal: React.FC<StarsPaymentModalProps> = ({
   onResetToFree,
 }) => {
   const [isProcessing, setIsProcessing] = useState(false);
+  const [statusText, setStatusText] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
   const handlePayClick = () => {
     setIsProcessing(true);
-    // Optional real invoice link from env if connected to Telegram Bot API createInvoiceLink
-    const invoiceUrl = import.meta.env.VITE_TELEGRAM_STARS_INVOICE_URL as string | undefined;
+    setStatusText('Подключение к платежному шлюзу Telegram...');
 
-    purchaseRemoveWatermarkWithStars(invoiceUrl, (status) => {
-      setIsProcessing(false);
-      if (status === 'paid') {
-        onUnlockSuccess();
+    purchaseRemoveWatermarkWithStars(
+      (status) => {
+        setIsProcessing(false);
+        setStatusText(null);
+        if (status === 'paid') {
+          onUnlockSuccess();
+        }
+      },
+      (stepMessage) => {
+        setStatusText(stepMessage);
       }
-    });
+    );
   };
 
   return (
@@ -107,7 +113,7 @@ export const StarsPaymentModal: React.FC<StarsPaymentModalProps> = ({
               <TelegramStarIcon className="w-5 h-5" />
               <span>
                 {isProcessing
-                  ? 'Вызов Telegram.WebApp.openInvoice...'
+                  ? statusText || 'Загрузка счета Telegram...'
                   : 'Убрать водяной знак за 39 звезд'}
               </span>
             </button>

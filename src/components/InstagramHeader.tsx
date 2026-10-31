@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
-import { Character, OsType } from '../types/chat';
+import { Character, OsType, StoryRingStatus } from '../types/chat';
 import { DEFAULT_CUSTOM_AVATAR } from '../data/characters';
 
 interface InstagramHeaderProps {
   character: Character;
   showOnlineDot: boolean;
+  storyRing?: StoryRingStatus;
   osType?: OsType;
   onBack: () => void;
   onTriggerAudioCall: () => void;
   onTriggerVideoCall: () => void;
   onOpenSettings: () => void;
+  onToggleStoryRing?: () => void;
 }
 
 export const VerifiedBadge: React.FC<{ className?: string }> = ({ className = 'w-3.5 h-3.5' }) => (
@@ -29,11 +31,13 @@ export const VerifiedBadge: React.FC<{ className?: string }> = ({ className = 'w
 export const InstagramHeader: React.FC<InstagramHeaderProps> = ({
   character,
   showOnlineDot,
+  storyRing = 'none',
   osType = 'ios',
   onBack,
   onTriggerAudioCall,
   onTriggerVideoCall,
   onOpenSettings,
+  onToggleStoryRing,
 }) => {
   const [imgSrc, setImgSrc] = useState(character.avatar);
 
@@ -75,16 +79,36 @@ export const InstagramHeader: React.FC<InstagramHeaderProps> = ({
         </button>
 
         <div className="flex items-center gap-2.5 min-w-0 pr-2">
-          {/* Avatar with optional online indicator */}
-          <div className="relative shrink-0">
-            <img
-              src={imgSrc || DEFAULT_CUSTOM_AVATAR}
-              alt={character.name}
-              onError={() => setImgSrc(DEFAULT_CUSTOM_AVATAR)}
-              loading="eager"
-              decoding="sync"
-              className="w-9 h-9 rounded-full object-cover object-top bg-[#262626]"
-            />
+          {/* Avatar with Story Ring and optional online indicator */}
+          <div
+            onClick={onToggleStoryRing}
+            title={
+              storyRing === 'unseen'
+                ? 'Новая история (градиент) — нажмите, чтобы переключить'
+                : storyRing === 'seen'
+                ? 'Просмотренная история (серая) — нажмите, чтобы переключить'
+                : 'Без истории — нажмите, чтобы добавить кружок'
+            }
+            className={`relative shrink-0 cursor-pointer ${
+              storyRing === 'unseen'
+                ? 'p-[2px] rounded-full bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888]'
+                : storyRing === 'seen'
+                ? 'p-[2px] rounded-full bg-[#52525B]'
+                : ''
+            }`}
+          >
+            <div className={storyRing !== 'none' ? 'p-[1.5px] bg-black rounded-full' : ''}>
+              <img
+                src={imgSrc || DEFAULT_CUSTOM_AVATAR}
+                alt={character.name}
+                onError={() => setImgSrc(DEFAULT_CUSTOM_AVATAR)}
+                loading="eager"
+                decoding="sync"
+                className={`${
+                  storyRing !== 'none' ? 'w-[31px] h-[31px]' : 'w-9 h-9'
+                } rounded-full object-cover object-top bg-[#262626] block`}
+              />
+            </div>
             {showOnlineDot && character.isOnline && (
               <span
                 aria-label="Онлайн"

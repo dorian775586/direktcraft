@@ -231,6 +231,55 @@ export const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
             </div>
           </div>
 
+          {/* Stories Ring around Avatar */}
+          <div>
+            <span className="block text-xs font-medium text-zinc-300 mb-1.5">
+              Кружок истории (Stories) у аватарки
+            </span>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => onUpdateSettings({ storyRing: 'none' })}
+                className={`min-h-[48px] px-2 rounded-xl border text-xs font-semibold flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
+                  (settings.storyRing ?? 'none') === 'none'
+                    ? 'bg-[#252530] border-[#0095F6] text-white shadow-xs'
+                    : 'bg-[#1C1C22] border-white/10 text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                <span className="text-xs">⭕</span>
+                <span className="text-[11px]">Выкл</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onUpdateSettings({ storyRing: 'unseen' })}
+                className={`min-h-[48px] px-2 rounded-xl border text-xs font-semibold flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
+                  settings.storyRing === 'unseen'
+                    ? 'bg-[#252530] border-pink-500 text-white shadow-xs'
+                    : 'bg-[#1C1C22] border-white/10 text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                <span className="w-3.5 h-3.5 rounded-full p-[1.5px] bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888] inline-flex items-center justify-center">
+                  <span className="w-full h-full bg-[#1C1C22] rounded-full block" />
+                </span>
+                <span className="text-[11px]">Новая (градиент)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onUpdateSettings({ storyRing: 'seen' })}
+                className={`min-h-[48px] px-2 rounded-xl border text-xs font-semibold flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
+                  settings.storyRing === 'seen'
+                    ? 'bg-[#252530] border-zinc-400 text-white shadow-xs'
+                    : 'bg-[#1C1C22] border-white/10 text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                <span className="w-3.5 h-3.5 rounded-full border-2 border-[#52525B] inline-block" />
+                <span className="text-[11px]">Просмотренная (серая)</span>
+              </button>
+            </div>
+          </div>
+
           {/* Toggles */}
           <div className="space-y-2 pt-1">
             {/* iOS Battery Percentage In Digits Toggle */}

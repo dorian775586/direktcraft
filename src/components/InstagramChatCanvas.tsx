@@ -17,6 +17,7 @@ interface InstagramChatCanvasProps {
   onTriggerVideoCall: () => void;
   onOpenSettings: () => void;
   onOpenStarsModal: () => void;
+  onToggleStoryRing?: () => void;
 }
 
 function getOutgoingBubbleStyle(theme?: string): React.CSSProperties {
@@ -48,6 +49,7 @@ export const InstagramChatCanvas = forwardRef<HTMLDivElement, InstagramChatCanva
       onTriggerVideoCall,
       onOpenSettings,
       onOpenStarsModal,
+      onToggleStoryRing,
     },
     ref
   ) => {
@@ -57,7 +59,7 @@ export const InstagramChatCanvas = forwardRef<HTMLDivElement, InstagramChatCanva
     return (
       <div
         ref={ref}
-        className={`${settings.osType === 'android' ? 'font-sans' : 'ios-font'} relative w-full max-w-[393px] mx-auto bg-black text-white flex flex-col justify-between overflow-hidden select-none min-h-[690px] sm:min-h-[740px]`}
+        className={`${settings.osType === 'android' ? 'font-sans' : 'ios-font'} relative w-full max-w-[393px] aspect-[9/16] mx-auto bg-black text-white flex flex-col justify-between overflow-hidden select-none shadow-2xl`}
       >
         {/* Top Section: iOS / Android Status Bar + Instagram Direct Header */}
         <div className="shrink-0 z-10">
@@ -70,30 +72,51 @@ export const InstagramChatCanvas = forwardRef<HTMLDivElement, InstagramChatCanva
           <InstagramHeader
             character={character}
             showOnlineDot={settings.showOnlineDot}
+            storyRing={settings.storyRing}
             osType={settings.osType}
             onBack={onBack}
             onTriggerAudioCall={onTriggerAudioCall}
             onTriggerVideoCall={onTriggerVideoCall}
             onOpenSettings={onOpenSettings}
+            onToggleStoryRing={onToggleStoryRing}
           />
         </div>
 
         {/* Middle Section: Authentic Instagram Direct Feed */}
-        <div className="flex-1 flex flex-col justify-end px-3.5 pt-3 pb-2 relative z-10 overflow-hidden">
+        <div className="flex-1 flex flex-col justify-end px-3.5 pt-2 pb-2 relative z-10 overflow-hidden">
           {/* Authentic Instagram Profile Header at start of chat */}
           {settings.showProfileIntro && (
-            <div className="flex flex-col items-center text-center pt-2 pb-4 mb-auto shrink-0 select-none">
-              <div className="relative mb-3">
-                <img
-                  src={character.avatar || DEFAULT_CUSTOM_AVATAR}
-                  alt={character.name}
-                  loading="eager"
-                  decoding="sync"
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).src = DEFAULT_CUSTOM_AVATAR;
-                  }}
-                  className="w-[84px] h-[84px] rounded-full object-cover object-top bg-[#262626] border border-white/10"
-                />
+            <div className="flex flex-col items-center text-center pt-1 pb-3 mb-auto shrink-0 select-none">
+              {/* Profile Avatar with Story Ring */}
+              <div
+                onClick={onToggleStoryRing}
+                title={
+                  settings.storyRing === 'unseen'
+                    ? 'Новая история (градиент) — нажмите для смены'
+                    : settings.storyRing === 'seen'
+                    ? 'Просмотренная история (серая) — нажмите для смены'
+                    : 'Без истории — нажмите для добавления кружка'
+                }
+                className={`relative mb-2 cursor-pointer transition-transform active:scale-95 ${
+                  settings.storyRing === 'unseen'
+                    ? 'p-[3px] rounded-full bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888]'
+                    : settings.storyRing === 'seen'
+                    ? 'p-[3px] rounded-full bg-[#52525B]'
+                    : ''
+                }`}
+              >
+                <div className={settings.storyRing !== 'none' ? 'p-[2px] bg-black rounded-full' : ''}>
+                  <img
+                    src={character.avatar || DEFAULT_CUSTOM_AVATAR}
+                    alt={character.name}
+                    loading="eager"
+                    decoding="sync"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src = DEFAULT_CUSTOM_AVATAR;
+                    }}
+                    className="w-[74px] h-[74px] rounded-full object-cover object-top bg-[#262626] block"
+                  />
+                </div>
               </div>
 
               {/* Name & Blue Checkmark */}
