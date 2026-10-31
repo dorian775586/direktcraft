@@ -51,12 +51,6 @@ export const InstagramChatCanvas = forwardRef<HTMLDivElement, InstagramChatCanva
     },
     ref
   ) => {
-    const [avatarSrc, setAvatarSrc] = useState(character.avatar);
-
-    React.useEffect(() => {
-      setAvatarSrc(character.avatar);
-    }, [character.avatar]);
-
     const lastMessage = messages[messages.length - 1];
     const showSeenBelowLast = settings.showSeenStatus && lastMessage?.sender === 'me';
 
@@ -89,10 +83,9 @@ export const InstagramChatCanvas = forwardRef<HTMLDivElement, InstagramChatCanva
           {settings.showProfileIntro && (
             <div className="flex flex-col items-center text-center pt-1 pb-4 mb-auto">
               <img
-                src={avatarSrc || DEFAULT_CUSTOM_AVATAR}
+                src={character.avatar || DEFAULT_CUSTOM_AVATAR}
                 alt={character.name}
-                referrerPolicy="no-referrer"
-                onError={() => setAvatarSrc(DEFAULT_CUSTOM_AVATAR)}
+                crossOrigin="anonymous"
                 className="w-16 h-16 rounded-full object-cover object-top bg-[#262626] mb-2.5"
               />
               <div className="flex items-center gap-1 justify-center">
@@ -196,10 +189,9 @@ export const InstagramChatCanvas = forwardRef<HTMLDivElement, InstagramChatCanva
                       <div className="w-7 h-7 shrink-0">
                         {!isSameNext && (
                           <img
-                            src={avatarSrc || DEFAULT_CUSTOM_AVATAR}
+                            src={character.avatar || DEFAULT_CUSTOM_AVATAR}
                             alt={character.name}
-                            referrerPolicy="no-referrer"
-                            onError={() => setAvatarSrc(DEFAULT_CUSTOM_AVATAR)}
+                            crossOrigin="anonymous"
                             className="w-7 h-7 rounded-full object-cover object-top bg-[#262626]"
                           />
                         )}

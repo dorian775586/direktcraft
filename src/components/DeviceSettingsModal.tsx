@@ -19,17 +19,17 @@ export const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 overflow-y-auto flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-xs p-0 sm:p-4"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-xs p-0 sm:p-4 touch-none"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <div
-        className="w-full max-w-md bg-[#141418] border border-white/10 rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[92dvh] sm:max-h-[88vh] flex flex-col my-auto overflow-hidden animate-in fade-in duration-200"
+        className="w-full max-w-md bg-[#141418] border border-white/10 rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[88dvh] sm:max-h-[85vh] flex flex-col my-auto overflow-hidden animate-in fade-in duration-200"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header - Fixed & Always Visible */}
-        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-white/10 shrink-0 bg-[#141418]">
+        {/* Header - Fixed & Touch-None */}
+        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-white/10 shrink-0 bg-[#141418] touch-none">
           <div>
             <h2 className="text-base font-bold text-white">Настройки экрана (iOS / Android)</h2>
             <p className="text-xs text-zinc-400">Детализация статус-бара, навигации и чата</p>
@@ -43,8 +43,11 @@ export const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
           </button>
         </div>
 
-        {/* Scrollable Content Area */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 overscroll-contain">
+        {/* Scrollable Content Area with touch-pan-y */}
+        <div
+          className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 overscroll-contain touch-pan-y"
+          style={{ WebkitOverflowScrolling: 'touch' }}
+        >
           {/* OS Switcher: iOS vs Android */}
           <div>
             <span className="block text-xs font-medium text-zinc-300 mb-1.5">
@@ -226,8 +229,8 @@ export const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
           </div>
         </div>
 
-        {/* Footer - Fixed & Always Visible */}
-        <div className="p-4 sm:p-5 border-t border-white/10 shrink-0 bg-[#141418]">
+        {/* Footer - Fixed & Touch-None */}
+        <div className="p-4 sm:p-5 border-t border-white/10 shrink-0 bg-[#141418] touch-none">
           <button
             type="button"
             onClick={onClose}

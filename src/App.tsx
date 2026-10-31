@@ -31,13 +31,43 @@ async function preloadImageAsDataUrl(src: string): Promise<string> {
   }
 }
 
+async function ensureAllImagesInlinedAsDataUris(container: HTMLElement): Promise<void> {
+  const images = Array.from(container.querySelectorAll('img'));
+  await Promise.all(
+    images.map(async (img) => {
+      if (!img.src || img.src.startsWith('data:')) return;
+      try {
+        if (img.complete && img.naturalWidth > 0) {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0);
+            img.src = canvas.toDataURL('image/png');
+            return;
+          }
+        }
+        const res = await fetch(img.src);
+        const blob = await res.blob();
+        const reader = new FileReader();
+        img.src = await new Promise<string>((resolve) => {
+          reader.onloadend = () => resolve(typeof reader.result === 'string' ? reader.result : img.src);
+          reader.onerror = () => resolve(img.src);
+          reader.readAsDataURL(blob);
+        });
+      } catch (e) {
+        console.warn('Image inlining error:', e);
+      }
+    })
+  );
+}
+
 export default function App() {
   const captureRef = useRef<HTMLDivElement | null>(null);
 
-  // Mobile view state ('roster' = start screen with 10+1 characters, 'chat' = constructor + preview)
+  // Mobile view state ('roster' = start screen with characters, 'chat' = unified constructor + preview on same page)
   const [mobileScreen, setMobileScreen] = useState<'roster' | 'chat'>('roster');
-  // Mobile sub-tab in chat mode ('preview' = phone screen, 'constructor' = message editor)
-  const [mobileChatTab, setMobileChatTab] = useState<'preview' | 'constructor'>('preview');
   // Desktop left-column workspace tab
   const [desktopTab, setDesktopTab] = useState<'roster' | 'constructor'>('roster');
 
@@ -102,6 +132,36 @@ export default function App() {
       cancelled = true;
     };
   }, []);
+
+  // 2. Lock background body scroll whenever any modal dialog is open (stops background scrolling on mobile)
+  useEffect(() => {
+    const isAnyModalOpen =
+      isCustomModalOpen || isSettingsModalOpen || isStarsModalOpen || !!capturedPngUrl;
+
+    if (!isAnyModalOpen) return;
+
+    const scrollY = window.scrollY || window.pageYOffset || 0;
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalBodyPosition = document.body.style.position;
+    const originalBodyTop = document.body.style.top;
+    const originalBodyWidth = document.body.style.width;
+    const originalHtmlOverflow = document.documentElement.style.overflow;
+
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = '100%';
+
+    return () => {
+      document.documentElement.style.overflow = originalHtmlOverflow;
+      document.body.style.overflow = originalBodyOverflow;
+      document.body.style.position = originalBodyPosition;
+      document.body.style.top = originalBodyTop;
+      document.body.style.width = originalBodyWidth;
+      window.scrollTo(0, scrollY);
+    };
+  }, [isCustomModalOpen, isSettingsModalOpen, isStarsModalOpen, capturedPngUrl]);
 
   const handleSelectCharacter = (character: Character) => {
     triggerHaptic('selection');
@@ -190,6 +250,17 @@ export default function App() {
     }
   };
 
+  // Ensure activeCharacter avatar is always converted to base64 data URI
+  useEffect(() => {
+    if (activeCharacter.avatar && !activeCharacter.avatar.startsWith('data:')) {
+      preloadImageAsDataUrl(activeCharacter.avatar).then((dataUri) => {
+        if (dataUri && dataUri !== activeCharacter.avatar) {
+          setActiveCharacter((prev) => ({ ...prev, avatar: dataUri }));
+        }
+      });
+    }
+  }, [activeCharacter.avatar]);
+
   const handleExportScreenshot = async () => {
     if (!captureRef.current || isExporting) return;
 
@@ -198,7 +269,10 @@ export default function App() {
     triggerHaptic('medium');
 
     try {
-      // Wait two frames so any selection highlight disappears before DOM capture
+      // 1. Ensure all images (header avatar, DM incoming avatars) are inlined as base64 data URIs
+      await ensureAllImagesInlinedAsDataUris(captureRef.current);
+
+      // 2. Wait two frames so any selection highlight disappears and inlined images paint before DOM capture
       await new Promise<void>((resolve) =>
         requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
       );
@@ -207,28 +281,32 @@ export default function App() {
         isProUnlocked ? '' : '-demo'
       }.png`;
 
-      // pixelRatio 2 gives crisp Retina resolution without crashing mobile canvas memory
+      // 3. pixelRatio 2 gives crisp Retina resolution without crashing mobile canvas memory
       // skipFonts true prevents failed fetches on external Google Fonts
+      // cacheBust false prevents query param appending to data URIs
       const dataUrl = await toPng(captureRef.current, {
         pixelRatio: 2,
         skipFonts: true,
+        cacheBust: false,
         backgroundColor: '#000000',
       });
 
       setCapturedPngUrl(dataUrl);
 
-      // Trigger automatic reliable Blob download
+      // 4. Trigger automatic reliable Blob download
       downloadImageFile(dataUrl, filename);
 
       triggerHaptic('success');
-      showToast('Скриншот сформирован и скачивается');
+      showToast('Скриншот сформирован');
     } catch (err) {
       console.warn('Primary PNG export failed, trying fallback:', err);
       try {
         if (captureRef.current) {
+          await ensureAllImagesInlinedAsDataUris(captureRef.current);
           const fallbackDataUrl = await toPng(captureRef.current, {
             pixelRatio: 1.5,
             skipFonts: true,
+            cacheBust: false,
             backgroundColor: '#000000',
           });
           setCapturedPngUrl(fallbackDataUrl);
@@ -356,10 +434,9 @@ export default function App() {
         </div>
       </header>
 
-      {/* Mobile Sticky Bar when in Chat Mode so OS Switcher is always visible */}
-      {/* Mobile Sticky Bar when in Chat Mode: Tab switcher & Download action */}
+      {/* Mobile Sticky Bar when in Chat Mode */}
       {mobileScreen === 'chat' && (
-        <div className="lg:hidden flex items-center justify-between gap-2 px-3 py-2 bg-[#09090B]/95 backdrop-blur-md border-b border-white/10 sticky top-0 z-30">
+        <div className="lg:hidden flex items-center justify-between gap-1.5 px-3 py-2 bg-[#09090B]/95 backdrop-blur-md border-b border-white/10 sticky top-0 z-30">
           <button
             type="button"
             onClick={() => {
@@ -372,39 +449,46 @@ export default function App() {
             <span className="hidden sm:inline">Персонажи</span>
           </button>
 
-          {/* Segmented Tab Switcher on Mobile: [📱 Чат] [✏️ Реплики] */}
-          <div className="inline-flex items-center rounded-xl bg-[#141418] border border-white/15 p-0.5 shadow-sm">
+          {/* Quick OS Switcher on mobile */}
+          <div className="inline-flex items-center rounded-xl bg-[#141418] border border-white/15 p-0.5 shadow-xs">
             <button
               type="button"
               onClick={() => {
                 triggerHaptic('selection');
-                setMobileChatTab('preview');
+                setSettings((s) => ({ ...s, osType: 'ios' }));
               }}
-              className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer flex items-center gap-1 ${
-                mobileChatTab === 'preview'
+              className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+                (settings.osType ?? 'ios') === 'ios'
                   ? 'bg-[#0095F6] text-white shadow-xs'
                   : 'text-zinc-400 hover:text-white'
               }`}
             >
-              <Smartphone className="w-3.5 h-3.5" />
-              <span>Чат</span>
+              🍏 iOS
             </button>
             <button
               type="button"
               onClick={() => {
                 triggerHaptic('selection');
-                setMobileChatTab('constructor');
+                setSettings((s) => ({ ...s, osType: 'android' }));
               }}
-              className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer flex items-center gap-1 ${
-                mobileChatTab === 'constructor'
+              className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+                settings.osType === 'android'
                   ? 'bg-[#0095F6] text-white shadow-xs'
                   : 'text-zinc-400 hover:text-white'
               }`}
             >
-              <MessageSquare className="w-3.5 h-3.5" />
-              <span>Реплики ({messages.length})</span>
+              🤖 Android
             </button>
           </div>
+
+          <button
+            type="button"
+            onClick={() => setIsSettingsModalOpen(true)}
+            title="Настройки экрана"
+            className="min-h-[38px] w-[38px] rounded-xl bg-[#18181F] hover:bg-[#22222B] border border-white/10 flex items-center justify-center text-zinc-300 hover:text-white cursor-pointer shrink-0"
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+          </button>
 
           <button
             type="button"
@@ -587,8 +671,8 @@ export default function App() {
               </div>
             </div>
 
-            {/* 📱 On Mobile: Preview Screen Mode (OR always visible on Desktop) */}
-            <div className={`w-full max-w-[393px] flex flex-col items-center ${mobileChatTab === 'preview' ? 'block' : 'hidden lg:block'}`}>
+            {/* Phone Canvas Preview + Unified Message Constructor on the Same Page */}
+            <div className="w-full max-w-[393px] flex flex-col items-center">
               {/* Device Outer Frame on Desktop / Full-Width Clean Mobile Screen on Phone */}
               <div className="w-full sm:rounded-[42px] sm:p-[10px] sm:bg-[#18181C] sm:border sm:border-white/[0.12] sm:shadow-2xl">
                 <div className="w-full overflow-hidden sm:rounded-[33px] bg-black">
@@ -617,7 +701,7 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Mobile Quick Action Buttons directly beneath phone in preview mode */}
+              {/* Mobile Quick Action Buttons directly beneath phone */}
               <div className="w-full mt-3 flex flex-col gap-2 px-1 lg:hidden">
                 <button
                   type="button"
@@ -634,12 +718,12 @@ export default function App() {
                     type="button"
                     onClick={() => {
                       triggerHaptic('selection');
-                      setMobileChatTab('constructor');
+                      setMobileScreen('roster');
                     }}
                     className="min-h-[42px] px-3 rounded-xl bg-[#181822] hover:bg-[#20202C] border border-white/10 text-xs font-semibold text-white flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                   >
-                    <MessageSquare className="w-3.5 h-3.5 text-[#0095F6]" />
-                    <span>Реплики ({messages.length}/{MAX_MESSAGES})</span>
+                    <Users className="w-3.5 h-3.5" />
+                    <span>Выбрать персонажа</span>
                   </button>
                   <button
                     type="button"
@@ -647,66 +731,58 @@ export default function App() {
                     className="min-h-[42px] px-3 rounded-xl bg-[#181822] hover:bg-[#20202C] border border-white/10 text-xs font-semibold text-zinc-300 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                   >
                     <SlidersHorizontal className="w-3.5 h-3.5" />
-                    <span>Настройки</span>
+                    <span>Настройки экрана</span>
                   </button>
                 </div>
               </div>
-            </div>
 
-            {/* ✏️ On Mobile: Dedicated Constructor Mode (when tapped 'Реплики' tab) */}
-            <div className={`w-full max-w-[430px] px-3 pt-2 pb-8 lg:hidden ${mobileChatTab === 'constructor' ? 'block' : 'hidden'}`}>
-              <div className="mb-2 flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={() => {
+              {/* On mobile: MessageConstructorPanel rendered directly on the SAME page right below the preview */}
+              <div className="w-full max-w-[393px] mt-4 px-1 pb-10 lg:hidden">
+                <div className="mb-2.5 flex items-center justify-between px-1">
+                  <span className="text-xs font-bold text-white uppercase tracking-wider">
+                    Реплики диалога
+                  </span>
+                  <span className="text-xs text-zinc-400 font-mono">
+                    {messages.length}/{MAX_MESSAGES} сообщений
+                  </span>
+                </div>
+
+                <MessageConstructorPanel
+                  character={activeCharacter}
+                  messages={messages}
+                  maxMessages={MAX_MESSAGES}
+                  selectedMessageId={selectedMessageId}
+                  bubbleTheme={settings.bubbleTheme}
+                  isProUnlocked={isProUnlocked}
+                  isExporting={isExporting}
+                  osType={settings.osType}
+                  onToggleOsType={(os) => {
                     triggerHaptic('selection');
-                    setMobileChatTab('preview');
+                    setSettings((prev) => ({ ...prev, osType: os }));
                   }}
-                  className="text-xs font-semibold text-[#0095F6] hover:underline flex items-center gap-1 cursor-pointer"
-                >
-                  <Smartphone className="w-3.5 h-3.5" />
-                  <span>← Посмотреть готовый скриншот</span>
-                </button>
-                <span className="text-xs text-zinc-400 font-mono">
-                  {messages.length}/{MAX_MESSAGES} сообщений
-                </span>
+                  onAddMessage={handleAddMessage}
+                  onUpdateMessageText={handleUpdateMessageText}
+                  onToggleLike={handleToggleLike}
+                  onSwapSender={handleSwapSender}
+                  onDeleteMessage={handleDeleteMessage}
+                  onSelectMessage={setSelectedMessageId}
+                  onSelectBubbleTheme={(theme) =>
+                    setSettings((prev) => ({ ...prev, bubbleTheme: theme }))
+                  }
+                  onResetStarter={() => {
+                    setMessages(activeCharacter.starterMessages);
+                    setSelectedMessageId(null);
+                  }}
+                  onClearAll={() => {
+                    setMessages([]);
+                    setSelectedMessageId(null);
+                  }}
+                  onExportScreenshot={handleExportScreenshot}
+                  onOpenStarsModal={() => setIsStarsModalOpen(true)}
+                  onOpenSettingsModal={() => setIsSettingsModalOpen(true)}
+                  onBackToRosterMobile={() => setMobileScreen('roster')}
+                />
               </div>
-
-              <MessageConstructorPanel
-                character={activeCharacter}
-                messages={messages}
-                maxMessages={MAX_MESSAGES}
-                selectedMessageId={selectedMessageId}
-                bubbleTheme={settings.bubbleTheme}
-                isProUnlocked={isProUnlocked}
-                isExporting={isExporting}
-                osType={settings.osType}
-                onToggleOsType={(os) => {
-                  triggerHaptic('selection');
-                  setSettings((prev) => ({ ...prev, osType: os }));
-                }}
-                onAddMessage={handleAddMessage}
-                onUpdateMessageText={handleUpdateMessageText}
-                onToggleLike={handleToggleLike}
-                onSwapSender={handleSwapSender}
-                onDeleteMessage={handleDeleteMessage}
-                onSelectMessage={setSelectedMessageId}
-                onSelectBubbleTheme={(theme) =>
-                  setSettings((prev) => ({ ...prev, bubbleTheme: theme }))
-                }
-                onResetStarter={() => {
-                  setMessages(activeCharacter.starterMessages);
-                  setSelectedMessageId(null);
-                }}
-                onClearAll={() => {
-                  setMessages([]);
-                  setSelectedMessageId(null);
-                }}
-                onExportScreenshot={handleExportScreenshot}
-                onOpenStarsModal={() => setIsStarsModalOpen(true)}
-                onOpenSettingsModal={() => setIsSettingsModalOpen(true)}
-                onBackToRosterMobile={() => setMobileScreen('roster')}
-              />
             </div>
 
             {/* Quick Desktop Export Action under Preview when browsing Roster tab */}

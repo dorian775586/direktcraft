@@ -1,5 +1,5 @@
 /**
- * Utility for robust image downloading and mobile sharing.
+ * Utility for robust image downloading, clipboard copying, and mobile sharing.
  * Works reliably inside iframes (Chrome/Safari) and Telegram Mini App webviews.
  */
 
@@ -16,6 +16,11 @@ export function dataUrlToBlob(dataUrl: string): Blob {
   return new Blob([bytes], { type: mime });
 }
 
+export function createBlobUrlFromDataUrl(dataUrl: string): string {
+  const blob = dataUrlToBlob(dataUrl);
+  return URL.createObjectURL(blob);
+}
+
 export function downloadImageFile(dataUrl: string, filename: string): boolean {
   try {
     const blob = dataUrlToBlob(dataUrl);
@@ -24,6 +29,8 @@ export function downloadImageFile(dataUrl: string, filename: string): boolean {
     const link = document.createElement('a');
     link.href = blobUrl;
     link.download = filename;
+    link.setAttribute('download', filename);
+    link.target = '_self';
     link.rel = 'noopener noreferrer';
     link.style.display = 'none';
     document.body.appendChild(link);
@@ -33,8 +40,8 @@ export function downloadImageFile(dataUrl: string, filename: string): boolean {
       if (document.body.contains(link)) {
         document.body.removeChild(link);
       }
-      URL.revokeObjectURL(blobUrl);
-    }, 4000);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+    }, 1000);
     return true;
   } catch (err) {
     console.warn('Blob URL download failed, trying data-uri fallback:', err);
@@ -42,6 +49,7 @@ export function downloadImageFile(dataUrl: string, filename: string): boolean {
       const link = document.createElement('a');
       link.href = dataUrl;
       link.download = filename;
+      link.setAttribute('download', filename);
       link.style.display = 'none';
       document.body.appendChild(link);
       link.click();
@@ -61,20 +69,37 @@ export function downloadImageFile(dataUrl: string, filename: string): boolean {
 export async function shareOrSaveImage(dataUrl: string, filename: string): Promise<boolean> {
   try {
     const blob = dataUrlToBlob(dataUrl);
-    const file = new File([blob], filename, { type: blob.type });
+    const file = new File([blob], filename, { type: blob.type || 'image/png' });
 
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [file] })) {
       await navigator.share({
         files: [file],
-        title: 'Instagram Direct Screenshot',
+        title: 'Instagram Direct',
       });
       return true;
     }
-  } catch (err) {
-    // User cancelled share or not supported
-    console.log('Share canceled or not supported:', err);
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      return true;
+    }
+    console.warn('Share not completed, trying fallback download:', err);
   }
 
-  // Fallback to normal download
+  // Fallback to file download
   return downloadImageFile(dataUrl, filename);
+}
+
+export async function copyImageToClipboard(dataUrl: string): Promise<boolean> {
+  try {
+    const blob = dataUrlToBlob(dataUrl);
+    if (navigator.clipboard && window.ClipboardItem) {
+      await navigator.clipboard.write([
+        new ClipboardItem({ [blob.type]: blob }),
+      ]);
+      return true;
+    }
+  } catch (err) {
+    console.warn('Clipboard copy failed:', err);
+  }
+  return false;
 }

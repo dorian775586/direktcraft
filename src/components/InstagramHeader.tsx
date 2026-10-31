@@ -78,10 +78,9 @@ export const InstagramHeader: React.FC<InstagramHeaderProps> = ({
           {/* Avatar with optional online indicator */}
           <div className="relative shrink-0">
             <img
-              src={imgSrc || DEFAULT_CUSTOM_AVATAR}
+              src={character.avatar || DEFAULT_CUSTOM_AVATAR}
               alt={character.name}
-              referrerPolicy="no-referrer"
-              onError={() => setImgSrc(DEFAULT_CUSTOM_AVATAR)}
+              crossOrigin="anonymous"
               className="w-9 h-9 rounded-full object-cover object-top bg-[#262626]"
             />
             {showOnlineDot && character.isOnline && (

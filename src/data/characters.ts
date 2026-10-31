@@ -49,6 +49,14 @@ function createPortraitSvgDataUri(config: {
     }
     <path d="M72 84C75 88 85 88 88 84" stroke="#7C2D12" stroke-opacity="0.55" stroke-width="2.4" stroke-linecap="round"/>
   </svg>`;
+  try {
+    if (typeof window !== 'undefined' && typeof window.btoa === 'function') {
+      const base64 = btoa(unescape(encodeURIComponent(svg)));
+      return `data:image/svg+xml;base64,${base64}`;
+    }
+  } catch {
+    // fallback
+  }
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
 
