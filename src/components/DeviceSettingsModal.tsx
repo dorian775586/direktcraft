@@ -18,12 +18,21 @@ export const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/75 backdrop-blur-xs p-0 sm:p-4">
-      <div className="w-full max-w-md bg-[#141418] border border-white/10 rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl">
-        <div className="flex items-center justify-between mb-4">
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-xs p-0 sm:p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        className="w-full max-w-md bg-[#141418] border border-white/10 rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[92dvh] sm:max-h-[88vh] flex flex-col my-auto overflow-hidden animate-in fade-in duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header - Fixed & Always Visible */}
+        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-white/10 shrink-0 bg-[#141418]">
           <div>
             <h2 className="text-base font-bold text-white">Настройки экрана (iOS / Android)</h2>
-            <p className="text-xs text-zinc-400">Детализация статус-бара, навигации и параметров чата</p>
+            <p className="text-xs text-zinc-400">Детализация статус-бара, навигации и чата</p>
           </div>
           <button
             type="button"
@@ -34,7 +43,8 @@ export const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
           </button>
         </div>
 
-        <div className="space-y-4">
+        {/* Scrollable Content Area */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 overscroll-contain">
           {/* OS Switcher: iOS vs Android */}
           <div>
             <span className="block text-xs font-medium text-zinc-300 mb-1.5">
@@ -214,13 +224,16 @@ export const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
               </span>
             </button>
           </div>
+        </div>
 
+        {/* Footer - Fixed & Always Visible */}
+        <div className="p-4 sm:p-5 border-t border-white/10 shrink-0 bg-[#141418]">
           <button
             type="button"
             onClick={onClose}
-            className="w-full min-h-[46px] mt-2 rounded-xl bg-[#0095F6] hover:bg-[#0081D6] text-sm font-semibold text-white transition-colors cursor-pointer"
+            className="w-full min-h-[46px] rounded-xl bg-[#0095F6] hover:bg-[#0081D6] text-sm font-bold text-white shadow-md transition-colors cursor-pointer"
           >
-            Применить
+            Применить настройки
           </button>
         </div>
       </div>

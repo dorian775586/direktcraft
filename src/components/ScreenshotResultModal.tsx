@@ -1,6 +1,6 @@
-import React from 'react';
-import { Download, X } from 'lucide-react';
+import { Download, X, Share2 } from 'lucide-react';
 import { TelegramStarIcon } from './StarsPaymentModal';
+import { downloadImageFile, shareOrSaveImage } from '../utils/download';
 
 interface ScreenshotResultModalProps {
   imageDataUrl: string | null;
@@ -19,18 +19,25 @@ export const ScreenshotResultModal: React.FC<ScreenshotResultModalProps> = ({
 }) => {
   if (!imageDataUrl) return null;
 
-  const handleDownloadAgain = () => {
-    const link = document.createElement('a');
-    link.download = filename;
-    link.href = imageDataUrl;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleDownload = () => {
+    downloadImageFile(imageDataUrl, filename);
+  };
+
+  const handleShare = async () => {
+    await shareOrSaveImage(imageDataUrl, filename);
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-xs p-0 sm:p-4">
-      <div className="w-full max-w-md bg-[#141418] border border-white/10 rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl max-h-[92dvh] flex flex-col">
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto flex items-end sm:items-center justify-center bg-black/85 backdrop-blur-xs p-0 sm:p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        className="w-full max-w-md bg-[#141418] border border-white/10 rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl max-h-[92dvh] sm:max-h-[88vh] flex flex-col my-auto animate-in fade-in duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between mb-3 shrink-0">
           <div>
             <h2 className="text-base font-bold text-white">Скриншот готов</h2>
@@ -61,14 +68,25 @@ export const ScreenshotResultModal: React.FC<ScreenshotResultModalProps> = ({
         </p>
 
         <div className="mt-3 flex flex-col gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={handleDownloadAgain}
-            className="w-full min-h-[46px] px-4 rounded-xl bg-[#0095F6] hover:bg-[#0081D6] text-white text-sm font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer"
-          >
-            <Download className="w-4 h-4" />
-            Скачать PNG файл
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={handleDownload}
+              className="flex-1 min-h-[46px] px-4 rounded-xl bg-[#0095F6] hover:bg-[#0081D6] text-white text-sm font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer"
+            >
+              <Download className="w-4 h-4" />
+              Скачать PNG
+            </button>
+            <button
+              type="button"
+              onClick={handleShare}
+              className="min-h-[46px] px-4 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/10 text-white text-sm font-medium flex items-center justify-center gap-2 transition-colors cursor-pointer"
+              title="Поделиться или сохранить в галерею"
+            >
+              <Share2 className="w-4 h-4" />
+              Поделиться
+            </button>
+          </div>
 
           {!isProUnlocked && (
             <button

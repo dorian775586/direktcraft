@@ -68,6 +68,99 @@ export const CharacterRoster: React.FC<CharacterRosterProps> = ({
 
   return (
     <div className="flex flex-col gap-4">
+      {/* 🌟 1. FEATURED: «Свой персонаж ✨» at the VERY TOP */}
+      <div
+        className={`p-3.5 sm:p-4 rounded-3xl border transition-all shadow-lg ${
+          customCharacter && activeCharacterId === customCharacter.id
+            ? 'bg-[#181822] border-[#0095F6] ring-1 ring-[#0095F6]/40'
+            : 'bg-gradient-to-r from-[#171725] via-[#151520] to-[#121829] border-[#0095F6]/40 hover:border-[#0095F6]/70'
+        }`}
+      >
+        <div className="flex items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              if (customCharacter) {
+                onSelectCharacter(customCharacter);
+              } else {
+                onOpenCustomModal();
+              }
+            }}
+            className="flex items-center gap-3.5 text-left min-w-0 flex-1 cursor-pointer"
+          >
+            {customCharacter ? (
+              <AvatarWithFallback
+                src={customCharacter.avatar}
+                alt={customCharacter.name}
+                isOnline={customCharacter.isOnline}
+              />
+            ) : (
+              <div className="relative shrink-0">
+                <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-[#0095F6] via-[#E1306C] to-[#FCAF45] p-[2px] flex items-center justify-center">
+                  <div className="w-full h-full rounded-full bg-[#121216] flex items-center justify-center text-[#0095F6]">
+                    <Plus className="w-6 h-6" />
+                  </div>
+                </div>
+                <span className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full bg-[#0095F6] text-[10px] font-bold text-white shadow-xs">
+                  NEW
+                </span>
+              </div>
+            )}
+
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="text-[15px] font-bold text-white truncate">
+                  {customCharacter ? customCharacter.name : 'Свой персонаж ✨'}
+                </span>
+                {customCharacter?.verified && <VerifiedBadge className="w-4 h-4" />}
+                {!customCharacter && (
+                  <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md bg-[#0095F6]/20 text-[#3797F0] border border-[#0095F6]/30">
+                    Кастом
+                  </span>
+                )}
+              </div>
+              <p className="text-[12px] text-zinc-300 mt-0.5 truncate">
+                {customCharacter
+                  ? `@${customCharacter.username} · ${customCharacter.followers}`
+                  : 'Загрузите своё фото, ник, имя и синюю галочку'}
+              </p>
+            </div>
+          </button>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {customCharacter ? (
+              <>
+                <button
+                  type="button"
+                  onClick={onOpenCustomModal}
+                  title="Редактировать параметры персонажа"
+                  className="min-h-[40px] px-3 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/10 text-xs font-medium text-zinc-200 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Изменить</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onSelectCharacter(customCharacter)}
+                  className="min-h-[40px] px-4 rounded-xl bg-[#0095F6] hover:bg-[#0081D6] text-xs font-bold text-white transition-colors cursor-pointer shadow-xs"
+                >
+                  В чат
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={onOpenCustomModal}
+                className="min-h-[42px] px-4 rounded-xl bg-[#0095F6] hover:bg-[#0081D6] text-xs font-bold text-white flex items-center gap-1.5 transition-colors cursor-pointer shadow-md"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Создать</span>
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Platform Switcher Banner (iOS vs Android) */}
       {onToggleOsType && (
         <div className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-[#141418] border border-white/10 shadow-sm">
@@ -127,8 +220,75 @@ export const CharacterRoster: React.FC<CharacterRosterProps> = ({
         })}
       </div>
 
-      {/* Grid of 10 Celebrities + 11th Custom Character Slot */}
+      {/* Grid of Characters with Custom Character as FIRST card */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+        {/* Item #1: Свой персонаж card in grid */}
+        <div
+          className={`flex items-center justify-between gap-3 p-3 rounded-2xl border transition-all min-h-[74px] ${
+            customCharacter && activeCharacterId === customCharacter.id
+              ? 'bg-[#181822] border-[#0095F6]'
+              : 'bg-gradient-to-r from-[#171725] to-[#121624] border-[#0095F6]/40 hover:border-[#0095F6]/70'
+          }`}
+        >
+          <button
+            type="button"
+            onClick={() => {
+              if (customCharacter) {
+                onSelectCharacter(customCharacter);
+              } else {
+                onOpenCustomModal();
+              }
+            }}
+            className="flex items-center gap-3.5 text-left min-w-0 flex-1 cursor-pointer"
+          >
+            {customCharacter ? (
+              <AvatarWithFallback
+                src={customCharacter.avatar}
+                alt={customCharacter.name}
+                isOnline={customCharacter.isOnline}
+              />
+            ) : (
+              <div className="w-[52px] h-[52px] rounded-full bg-[#0095F6]/20 border border-dashed border-[#0095F6]/60 flex items-center justify-center text-[#0095F6] shrink-0">
+                <Plus className="w-5 h-5" />
+              </div>
+            )}
+
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="text-[14px] font-bold text-white truncate">
+                  {customCharacter ? `${customCharacter.name} ✨` : '✨ Свой персонаж'}
+                </span>
+                {customCharacter?.verified && <VerifiedBadge className="w-3.5 h-3.5" />}
+              </div>
+              <p className="text-[12px] text-zinc-400 mt-0.5 truncate">
+                {customCharacter
+                  ? `@${customCharacter.username} · Свой профиль`
+                  : 'Создать со своим фото и ником'}
+              </p>
+            </div>
+          </button>
+
+          {customCharacter ? (
+            <button
+              type="button"
+              onClick={onOpenCustomModal}
+              title="Редактировать своего персонажа"
+              className="min-w-[40px] min-h-[40px] rounded-xl bg-white/[0.06] hover:bg-white/[0.12] flex items-center justify-center text-zinc-300 transition-colors shrink-0 cursor-pointer"
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onOpenCustomModal}
+              className="min-h-[36px] px-2.5 rounded-lg bg-[#0095F6] hover:bg-[#0081D6] text-white text-xs font-semibold shrink-0 cursor-pointer"
+            >
+              Настроить
+            </button>
+          )}
+        </div>
+
+        {/* 10 Celebrities */}
         {filteredCharacters.map((char) => {
           const isSelected = activeCharacterId === char.id;
           return (
@@ -164,64 +324,6 @@ export const CharacterRoster: React.FC<CharacterRosterProps> = ({
             </button>
           );
         })}
-
-        {/* 11-я плашка: «Свой персонаж ✨» */}
-        <div
-          className={`flex items-center justify-between gap-3 p-3 rounded-2xl border transition-all min-h-[74px] ${
-            customCharacter && activeCharacterId === customCharacter.id
-              ? 'bg-[#18181D] border-[#0095F6]/70'
-              : 'bg-gradient-to-r from-[#161622] to-[#131722] border-[#0095F6]/30 hover:border-[#0095F6]/60'
-          }`}
-        >
-          <button
-            type="button"
-            onClick={() => {
-              if (customCharacter) {
-                onSelectCharacter(customCharacter);
-              } else {
-                onOpenCustomModal();
-              }
-            }}
-            className="flex items-center gap-3.5 text-left min-w-0 flex-1 cursor-pointer"
-          >
-            {customCharacter ? (
-              <AvatarWithFallback
-                src={customCharacter.avatar}
-                alt={customCharacter.name}
-                isOnline={customCharacter.isOnline}
-              />
-            ) : (
-              <div className="w-[52px] h-[52px] rounded-full bg-[#0095F6]/15 border border-dashed border-[#0095F6]/60 flex items-center justify-center text-[#0095F6] shrink-0">
-                <Plus className="w-5 h-5" />
-              </div>
-            )}
-
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <span className="text-[14px] font-semibold text-white truncate">
-                  {customCharacter ? `${customCharacter.name} ✨` : 'Свой персонаж ✨'}
-                </span>
-                {customCharacter?.verified && <VerifiedBadge className="w-3.5 h-3.5" />}
-              </div>
-              <p className="text-[12px] text-zinc-400 mt-0.5 truncate">
-                {customCharacter
-                  ? `@${customCharacter.username} · Кастомный профиль`
-                  : 'Свой ник, имя, галочка и фото'}
-              </p>
-            </div>
-          </button>
-
-          {customCharacter && (
-            <button
-              type="button"
-              onClick={onOpenCustomModal}
-              title="Редактировать своего персонажа"
-              className="min-w-[40px] min-h-[40px] rounded-xl bg-white/[0.06] hover:bg-white/[0.12] flex items-center justify-center text-zinc-300 transition-colors shrink-0 cursor-pointer"
-            >
-              <Pencil className="w-4 h-4" />
-            </button>
-          )}
-        </div>
       </div>
     </div>
   );

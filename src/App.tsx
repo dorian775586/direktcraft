@@ -3,6 +3,7 @@ import { toPng } from 'html-to-image';
 import { Character, ChatMessage, DeviceSettings } from './types/chat';
 import { CELEBRITY_CHARACTERS } from './data/characters';
 import { initTelegramMiniApp, triggerHaptic } from './utils/telegram';
+import { downloadImageFile } from './utils/download';
 import { CharacterRoster } from './components/CharacterRoster';
 import { InstagramChatCanvas } from './components/InstagramChatCanvas';
 import { MessageConstructorPanel } from './components/MessageConstructorPanel';
@@ -10,7 +11,7 @@ import { CustomCharacterModal } from './components/CustomCharacterModal';
 import { StarsPaymentModal, TelegramStarIcon } from './components/StarsPaymentModal';
 import { ScreenshotResultModal } from './components/ScreenshotResultModal';
 import { DeviceSettingsModal } from './components/DeviceSettingsModal';
-import { SlidersHorizontal, Users } from 'lucide-react';
+import { SlidersHorizontal, Users, Sparkles, MessageSquare, Smartphone, Download } from 'lucide-react';
 
 const MAX_MESSAGES = 8;
 
@@ -35,6 +36,8 @@ export default function App() {
 
   // Mobile view state ('roster' = start screen with 10+1 characters, 'chat' = constructor + preview)
   const [mobileScreen, setMobileScreen] = useState<'roster' | 'chat'>('roster');
+  // Mobile sub-tab in chat mode ('preview' = phone screen, 'constructor' = message editor)
+  const [mobileChatTab, setMobileChatTab] = useState<'preview' | 'constructor'>('preview');
   // Desktop left-column workspace tab
   const [desktopTab, setDesktopTab] = useState<'roster' | 'constructor'>('roster');
 
@@ -200,27 +203,46 @@ export default function App() {
         requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
       );
 
+      const filename = `instagram-direct-${activeCharacter.username}${
+        isProUnlocked ? '' : '-demo'
+      }.png`;
+
+      // pixelRatio 2 gives crisp Retina resolution without crashing mobile canvas memory
+      // skipFonts true prevents failed fetches on external Google Fonts
       const dataUrl = await toPng(captureRef.current, {
-        pixelRatio: 3,
-        cacheBust: true,
+        pixelRatio: 2,
+        skipFonts: true,
         backgroundColor: '#000000',
       });
 
       setCapturedPngUrl(dataUrl);
 
-      // Trigger automatic file download as well
-      const filename = `instagram-direct-${activeCharacter.username}${
-        isProUnlocked ? '' : '-demo'
-      }.png`;
-      const link = document.createElement('a');
-      link.download = filename;
-      link.href = dataUrl;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // Trigger automatic reliable Blob download
+      downloadImageFile(dataUrl, filename);
 
       triggerHaptic('success');
-    } catch {
+      showToast('Скриншот сформирован и скачивается');
+    } catch (err) {
+      console.warn('Primary PNG export failed, trying fallback:', err);
+      try {
+        if (captureRef.current) {
+          const fallbackDataUrl = await toPng(captureRef.current, {
+            pixelRatio: 1.5,
+            skipFonts: true,
+            backgroundColor: '#000000',
+          });
+          setCapturedPngUrl(fallbackDataUrl);
+          const filename = `instagram-direct-${activeCharacter.username}${
+            isProUnlocked ? '' : '-demo'
+          }.png`;
+          downloadImageFile(fallbackDataUrl, filename);
+          triggerHaptic('success');
+          showToast('Скриншот сформирован');
+          return;
+        }
+      } catch (fallbackErr) {
+        console.error('All screenshot export methods failed:', fallbackErr);
+      }
       showToast('Не удалось сформировать PNG. Попробуйте еще раз.');
     } finally {
       setIsExporting(false);
@@ -335,6 +357,7 @@ export default function App() {
       </header>
 
       {/* Mobile Sticky Bar when in Chat Mode so OS Switcher is always visible */}
+      {/* Mobile Sticky Bar when in Chat Mode: Tab switcher & Download action */}
       {mobileScreen === 'chat' && (
         <div className="lg:hidden flex items-center justify-between gap-2 px-3 py-2 bg-[#09090B]/95 backdrop-blur-md border-b border-white/10 sticky top-0 z-30">
           <button
@@ -346,38 +369,40 @@ export default function App() {
             className="min-h-[38px] px-2.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.12] text-xs font-semibold text-white inline-flex items-center gap-1.5 cursor-pointer shrink-0"
           >
             <Users className="w-3.5 h-3.5" />
-            <span>Персонажи</span>
+            <span className="hidden sm:inline">Персонажи</span>
           </button>
 
-          {/* Prominent OS Switcher on Mobile Chat */}
+          {/* Segmented Tab Switcher on Mobile: [📱 Чат] [✏️ Реплики] */}
           <div className="inline-flex items-center rounded-xl bg-[#141418] border border-white/15 p-0.5 shadow-sm">
             <button
               type="button"
               onClick={() => {
                 triggerHaptic('selection');
-                setSettings((s) => ({ ...s, osType: 'ios' }));
+                setMobileChatTab('preview');
               }}
-              className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
-                (settings.osType ?? 'ios') === 'ios'
+              className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer flex items-center gap-1 ${
+                mobileChatTab === 'preview'
                   ? 'bg-[#0095F6] text-white shadow-xs'
                   : 'text-zinc-400 hover:text-white'
               }`}
             >
-              🍏 iOS
+              <Smartphone className="w-3.5 h-3.5" />
+              <span>Чат</span>
             </button>
             <button
               type="button"
               onClick={() => {
                 triggerHaptic('selection');
-                setSettings((s) => ({ ...s, osType: 'android' }));
+                setMobileChatTab('constructor');
               }}
-              className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
-                settings.osType === 'android'
+              className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer flex items-center gap-1 ${
+                mobileChatTab === 'constructor'
                   ? 'bg-[#0095F6] text-white shadow-xs'
                   : 'text-zinc-400 hover:text-white'
               }`}
             >
-              🤖 Android
+              <MessageSquare className="w-3.5 h-3.5" />
+              <span>Реплики ({messages.length})</span>
             </button>
           </div>
 
@@ -385,9 +410,10 @@ export default function App() {
             type="button"
             disabled={isExporting}
             onClick={handleExportScreenshot}
-            className="min-h-[38px] px-3 rounded-xl bg-white hover:bg-zinc-200 text-zinc-950 text-xs font-bold transition-colors cursor-pointer shrink-0"
+            className="min-h-[38px] px-3.5 rounded-xl bg-white hover:bg-zinc-200 text-zinc-950 text-xs font-bold transition-colors cursor-pointer shrink-0 shadow-xs flex items-center gap-1.5"
           >
-            {isExporting ? '...' : 'Скачать'}
+            <Download className="w-3.5 h-3.5" />
+            <span>{isExporting ? '...' : 'Скачать'}</span>
           </button>
         </div>
       )}
@@ -561,36 +587,91 @@ export default function App() {
               </div>
             </div>
 
-            {/* Device Outer Frame on Desktop / Full-Width Clean Mobile Screen on Phone */}
-            <div className="w-full max-w-[393px] sm:rounded-[42px] sm:p-[10px] sm:bg-[#18181C] sm:border sm:border-white/[0.12] sm:shadow-2xl">
-              <div className="w-full overflow-hidden sm:rounded-[33px] bg-black">
-                {/* ONLY THIS INNER NODE IS CAPTURED BY html-to-image (No Telegram / Studio UI!) */}
-                <InstagramChatCanvas
-                  ref={captureRef}
-                  character={activeCharacter}
-                  messages={messages}
-                  settings={settings}
-                  isProUnlocked={isProUnlocked}
-                  selectedMessageId={selectedMessageId}
-                  onSelectMessage={(id) =>
-                    setSelectedMessageId((prev) => (prev === id ? null : id))
-                  }
-                  onToggleLikeMessage={handleToggleLike}
-                  onBack={() => {
-                    triggerHaptic('selection');
-                    setMobileScreen('roster');
-                    setDesktopTab('roster');
-                  }}
-                  onTriggerAudioCall={() => handleAddSystemCall('audio')}
-                  onTriggerVideoCall={() => handleAddSystemCall('video')}
-                  onOpenSettings={() => setIsSettingsModalOpen(true)}
-                  onOpenStarsModal={() => setIsStarsModalOpen(true)}
-                />
+            {/* 📱 On Mobile: Preview Screen Mode (OR always visible on Desktop) */}
+            <div className={`w-full max-w-[393px] flex flex-col items-center ${mobileChatTab === 'preview' ? 'block' : 'hidden lg:block'}`}>
+              {/* Device Outer Frame on Desktop / Full-Width Clean Mobile Screen on Phone */}
+              <div className="w-full sm:rounded-[42px] sm:p-[10px] sm:bg-[#18181C] sm:border sm:border-white/[0.12] sm:shadow-2xl">
+                <div className="w-full overflow-hidden sm:rounded-[33px] bg-black">
+                  {/* ONLY THIS INNER NODE IS CAPTURED BY html-to-image (No Telegram / Studio UI!) */}
+                  <InstagramChatCanvas
+                    ref={captureRef}
+                    character={activeCharacter}
+                    messages={messages}
+                    settings={settings}
+                    isProUnlocked={isProUnlocked}
+                    selectedMessageId={selectedMessageId}
+                    onSelectMessage={(id) =>
+                      setSelectedMessageId((prev) => (prev === id ? null : id))
+                    }
+                    onToggleLikeMessage={handleToggleLike}
+                    onBack={() => {
+                      triggerHaptic('selection');
+                      setMobileScreen('roster');
+                      setDesktopTab('roster');
+                    }}
+                    onTriggerAudioCall={() => handleAddSystemCall('audio')}
+                    onTriggerVideoCall={() => handleAddSystemCall('video')}
+                    onOpenSettings={() => setIsSettingsModalOpen(true)}
+                    onOpenStarsModal={() => setIsStarsModalOpen(true)}
+                  />
+                </div>
+              </div>
+
+              {/* Mobile Quick Action Buttons directly beneath phone in preview mode */}
+              <div className="w-full mt-3 flex flex-col gap-2 px-1 lg:hidden">
+                <button
+                  type="button"
+                  disabled={isExporting}
+                  onClick={handleExportScreenshot}
+                  className="w-full min-h-[48px] px-5 rounded-2xl bg-white hover:bg-zinc-200 text-zinc-950 font-bold text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-md"
+                >
+                  <Download className="w-4 h-4 shrink-0" />
+                  <span>{isExporting ? 'Рендеринг PNG...' : 'Скачать скриншот (PNG)'}</span>
+                </button>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic('selection');
+                      setMobileChatTab('constructor');
+                    }}
+                    className="min-h-[42px] px-3 rounded-xl bg-[#181822] hover:bg-[#20202C] border border-white/10 text-xs font-semibold text-white flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5 text-[#0095F6]" />
+                    <span>Реплики ({messages.length}/{MAX_MESSAGES})</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsSettingsModalOpen(true)}
+                    className="min-h-[42px] px-3 rounded-xl bg-[#181822] hover:bg-[#20202C] border border-white/10 text-xs font-semibold text-zinc-300 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <SlidersHorizontal className="w-3.5 h-3.5" />
+                    <span>Настройки</span>
+                  </button>
+                </div>
               </div>
             </div>
 
-            {/* Mobile Creator Controls (Rendered OUTSIDE captureRef so never included in screenshot) */}
-            <div className="w-full max-w-[430px] px-3 pt-4 pb-8 lg:hidden">
+            {/* ✏️ On Mobile: Dedicated Constructor Mode (when tapped 'Реплики' tab) */}
+            <div className={`w-full max-w-[430px] px-3 pt-2 pb-8 lg:hidden ${mobileChatTab === 'constructor' ? 'block' : 'hidden'}`}>
+              <div className="mb-2 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic('selection');
+                    setMobileChatTab('preview');
+                  }}
+                  className="text-xs font-semibold text-[#0095F6] hover:underline flex items-center gap-1 cursor-pointer"
+                >
+                  <Smartphone className="w-3.5 h-3.5" />
+                  <span>← Посмотреть готовый скриншот</span>
+                </button>
+                <span className="text-xs text-zinc-400 font-mono">
+                  {messages.length}/{MAX_MESSAGES} сообщений
+                </span>
+              </div>
+
               <MessageConstructorPanel
                 character={activeCharacter}
                 messages={messages}

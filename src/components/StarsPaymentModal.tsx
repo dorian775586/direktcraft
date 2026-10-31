@@ -51,8 +51,16 @@ export const StarsPaymentModal: React.FC<StarsPaymentModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/75 backdrop-blur-xs p-0 sm:p-4">
-      <div className="w-full max-w-md bg-[#16161C] border border-white/10 rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl">
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-xs p-0 sm:p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        className="w-full max-w-md bg-[#16161C] border border-white/10 rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl max-h-[92dvh] sm:max-h-[88vh] overflow-y-auto my-auto animate-in fade-in duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-start justify-between">
           <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-400/30 flex items-center justify-center">
             <TelegramStarIcon className="w-7 h-7" />

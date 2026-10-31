@@ -79,11 +79,20 @@ export const CustomCharacterModal: React.FC<CustomCharacterModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/75 backdrop-blur-xs p-0 sm:p-4">
-      <div className="w-full max-w-md bg-[#141418] border border-white/10 rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl">
-        <div className="flex items-center justify-between mb-5">
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-xs p-0 sm:p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        className="w-full max-w-md bg-[#141418] border border-white/10 rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[92dvh] sm:max-h-[88vh] flex flex-col my-auto overflow-hidden animate-in fade-in duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header - Fixed */}
+        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-white/10 shrink-0 bg-[#141418]">
           <div>
-            <h2 className="text-lg font-bold text-white">Свой персонаж ✨</h2>
+            <h2 className="text-base sm:text-lg font-bold text-white">Свой персонаж ✨</h2>
             <p className="text-xs text-zinc-400 mt-0.5">
               Загрузите фото и настройте шапку профиля Instagram
             </p>
@@ -97,7 +106,9 @@ export const CustomCharacterModal: React.FC<CustomCharacterModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          {/* Scrollable Form Body */}
+          <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 overscroll-contain">
           {/* Avatar Uploader via <input type="file"> */}
           <div className="flex items-center gap-4 p-3.5 rounded-2xl bg-[#1C1C22] border border-white/[0.06]">
             <div className="relative shrink-0">
@@ -223,24 +234,26 @@ export const CustomCharacterModal: React.FC<CustomCharacterModalProps> = ({
               Зеленая точка: {isOnline ? 'Вкл' : 'Выкл'}
             </button>
           </div>
+        </div>
 
-          <div className="flex items-center gap-2.5 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="min-h-[46px] px-4 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-sm font-medium text-zinc-300 transition-colors cursor-pointer"
-            >
-              Отмена
-            </button>
-            <button
-              type="submit"
-              className="min-h-[46px] flex-1 px-5 rounded-xl bg-[#0095F6] hover:bg-[#0081D6] text-sm font-semibold text-white transition-colors cursor-pointer"
-            >
-              Открыть чат с персонажем
-            </button>
-          </div>
-        </form>
-      </div>
+        {/* Footer - Fixed */}
+        <div className="p-4 sm:p-5 border-t border-white/10 shrink-0 bg-[#141418] flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={onClose}
+            className="min-h-[46px] px-4 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-sm font-medium text-zinc-300 transition-colors cursor-pointer"
+          >
+            Отмена
+          </button>
+          <button
+            type="submit"
+            className="min-h-[46px] flex-1 px-5 rounded-xl bg-[#0095F6] hover:bg-[#0081D6] text-sm font-bold text-white shadow-md transition-colors cursor-pointer"
+          >
+            Открыть чат с персонажем
+          </button>
+        </div>
+      </form>
     </div>
-  );
+  </div>
+);
 };
