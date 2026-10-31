@@ -58,7 +58,7 @@ export const ScreenshotResultModal: React.FC<ScreenshotResultModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/85 backdrop-blur-xs p-0 sm:p-4 touch-none"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/85 backdrop-blur-xs p-0 sm:p-4"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -68,7 +68,7 @@ export const ScreenshotResultModal: React.FC<ScreenshotResultModalProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between mb-2.5 shrink-0 touch-none">
+        <div className="flex items-center justify-between mb-2.5 shrink-0">
           <div>
             <h2 className="text-base font-bold text-white">Скриншот готов</h2>
             <p className="text-xs text-zinc-400">
@@ -84,28 +84,44 @@ export const ScreenshotResultModal: React.FC<ScreenshotResultModalProps> = ({
           </button>
         </div>
 
-        {/* Captured Image Preview */}
+        {/* Captured Image Preview with full touch-callout enabled for mobile long-press */}
         <div
-          className="flex-1 overflow-y-auto rounded-2xl bg-black border border-white/10 p-2 flex items-center justify-center min-h-0 overscroll-contain touch-pan-y"
+          className="flex-1 overflow-y-auto rounded-2xl bg-black border border-white/10 p-2 flex items-center justify-center min-h-0 overscroll-contain"
           style={{ WebkitOverflowScrolling: 'touch' }}
         >
           <img
             src={imageDataUrl}
             alt="Готовый скриншот Instagram Direct"
+            style={{
+              WebkitTouchCallout: 'default',
+              userSelect: 'auto',
+              pointerEvents: 'auto',
+            }}
             className="max-h-[48dvh] w-auto rounded-xl object-contain shadow-2xl select-auto"
           />
         </div>
 
         {/* Mobile / Telegram Hint */}
-        <div className="mt-2.5 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-center shrink-0 touch-none">
+        <div className="mt-2.5 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-center shrink-0">
           <p className="text-[11px] text-zinc-300 leading-tight">
-            💡 <span className="font-semibold text-white">На телефоне:</span> зажмите изображение пальцем на 1 секунду → выберите <span className="text-[#0095F6] font-semibold">«Сохранить в Фото»</span>.
+            💡 <span className="font-semibold text-white">На телефоне:</span> нажмите <span className="text-emerald-400 font-semibold">«В галерею»</span> или зажмите фото пальцем на 1 сек → <span className="text-[#0095F6] font-semibold">«Сохранить в Фото»</span>.
           </p>
         </div>
 
         {/* Actions Grid */}
-        <div className="mt-2.5 flex flex-col gap-2 shrink-0 touch-none">
+        <div className="mt-2.5 flex flex-col gap-2 shrink-0">
           <div className="grid grid-cols-2 gap-2">
+            {/* Native Mobile Share / Save to Gallery - PRIMARY on mobile */}
+            <button
+              type="button"
+              onClick={handleShare}
+              className="min-h-[44px] px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-md"
+              title="Открыть системное меню сохранения в фото"
+            >
+              <Share2 className="w-4 h-4 shrink-0" />
+              <span>В галерею / Фото</span>
+            </button>
+
             {/* Direct <a> Tag Download for Browsers */}
             <a
               href={blobUrl || imageDataUrl}
@@ -116,17 +132,6 @@ export const ScreenshotResultModal: React.FC<ScreenshotResultModalProps> = ({
               <Download className="w-4 h-4 shrink-0" />
               <span>Скачать PNG</span>
             </a>
-
-            {/* Native Mobile Share / Save to Gallery */}
-            <button
-              type="button"
-              onClick={handleShare}
-              className="min-h-[44px] px-3 rounded-xl bg-white/[0.1] hover:bg-white/[0.16] border border-white/15 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-              title="Открыть системное меню сохранения в фото"
-            >
-              <Share2 className="w-4 h-4 shrink-0 text-emerald-400" />
-              <span>В галерею</span>
-            </button>
           </div>
 
           {/* Copy Button */}
@@ -143,7 +148,7 @@ export const ScreenshotResultModal: React.FC<ScreenshotResultModalProps> = ({
             ) : (
               <>
                 <Copy className="w-3.5 h-3.5" />
-                <span>Скопировать картинку в буфер обмена</span>
+                <span>Скопировать в буфер обмена</span>
               </>
             )}
           </button>

@@ -85,7 +85,11 @@ export const InstagramChatCanvas = forwardRef<HTMLDivElement, InstagramChatCanva
               <img
                 src={character.avatar || DEFAULT_CUSTOM_AVATAR}
                 alt={character.name}
-                crossOrigin="anonymous"
+                loading="eager"
+                decoding="sync"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).src = DEFAULT_CUSTOM_AVATAR;
+                }}
                 className="w-16 h-16 rounded-full object-cover object-top bg-[#262626] mb-2.5"
               />
               <div className="flex items-center gap-1 justify-center">
@@ -191,7 +195,11 @@ export const InstagramChatCanvas = forwardRef<HTMLDivElement, InstagramChatCanva
                           <img
                             src={character.avatar || DEFAULT_CUSTOM_AVATAR}
                             alt={character.name}
-                            crossOrigin="anonymous"
+                            loading="eager"
+                            decoding="sync"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLImageElement).src = DEFAULT_CUSTOM_AVATAR;
+                            }}
                             className="w-7 h-7 rounded-full object-cover object-top bg-[#262626]"
                           />
                         )}

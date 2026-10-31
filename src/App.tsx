@@ -37,27 +37,17 @@ async function ensureAllImagesInlinedAsDataUris(container: HTMLElement): Promise
     images.map(async (img) => {
       if (!img.src || img.src.startsWith('data:')) return;
       try {
-        if (img.complete && img.naturalWidth > 0) {
-          const canvas = document.createElement('canvas');
-          canvas.width = img.naturalWidth;
-          canvas.height = img.naturalHeight;
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.drawImage(img, 0, 0);
-            img.src = canvas.toDataURL('image/png');
-            return;
-          }
-        }
         const res = await fetch(img.src);
         const blob = await res.blob();
         const reader = new FileReader();
         img.src = await new Promise<string>((resolve) => {
-          reader.onloadend = () => resolve(typeof reader.result === 'string' ? reader.result : img.src);
+          reader.onloadend = () =>
+            resolve(typeof reader.result === 'string' ? reader.result : img.src);
           reader.onerror = () => resolve(img.src);
           reader.readAsDataURL(blob);
         });
       } catch (e) {
-        console.warn('Image inlining error:', e);
+        console.warn('Image inlining skipped:', e);
       }
     })
   );
@@ -107,30 +97,9 @@ export default function App() {
     }, 2800);
   }, []);
 
-  // 1. Initialize Telegram WebApp API + inline local JPG avatars into data URIs for rock-solid html-to-image capture
+  // 1. Initialize Telegram WebApp API
   useEffect(() => {
     initTelegramMiniApp();
-
-    let cancelled = false;
-    (async () => {
-      const hydrated = await Promise.all(
-        CELEBRITY_CHARACTERS.map(async (c) => ({
-          ...c,
-          avatar: await preloadImageAsDataUrl(c.avatar),
-        }))
-      );
-      if (!cancelled) {
-        setCharacters(hydrated);
-        setActiveCharacter((prev) => {
-          const match = hydrated.find((item) => item.id === prev.id);
-          return match || prev;
-        });
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
   // 2. Lock background body scroll whenever any modal dialog is open (stops background scrolling on mobile)
