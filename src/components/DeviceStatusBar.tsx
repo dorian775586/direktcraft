@@ -5,12 +5,14 @@ interface DeviceStatusBarProps {
   time: string;
   batteryLevel: number;
   osType?: OsType;
+  showBatteryPercentage?: boolean;
 }
 
 export const DeviceStatusBar: React.FC<DeviceStatusBarProps> = ({
   time,
   batteryLevel,
   osType = 'ios',
+  showBatteryPercentage = true,
 }) => {
   const clampedBattery = Math.max(5, Math.min(100, batteryLevel));
 
@@ -161,38 +163,78 @@ export const DeviceStatusBar: React.FC<DeviceStatusBarProps> = ({
         </svg>
 
         {/* iOS Battery Icon */}
-        <svg
-          width="27"
-          height="13"
-          viewBox="0 0 27 13"
-          fill="none"
-          aria-label={`Заряд батареи ${clampedBattery}%`}
-          className="shrink-0"
-        >
-          <rect
-            x="0.75"
-            y="1"
-            width="22"
-            height="11"
-            rx="3.5"
-            stroke="white"
-            strokeOpacity="0.4"
-            strokeWidth="1.15"
-          />
-          <rect
-            x="2.5"
-            y="2.75"
-            width={fillWidth}
-            height="7.5"
-            rx="1.8"
-            fill={clampedBattery <= 20 ? '#FF453A' : 'white'}
-          />
-          <path
-            d="M24.2 4.5C25.05 4.82 25.55 5.55 25.55 6.5C25.55 7.45 25.05 8.18 24.2 8.5V4.5Z"
-            fill="white"
-            fillOpacity="0.45"
-          />
-        </svg>
+        {showBatteryPercentage ? (
+          <div
+            className="relative flex items-center justify-center shrink-0 w-[27px] h-[13px]"
+            aria-label={`Заряд батареи ${clampedBattery}%`}
+          >
+            <svg
+              width="27"
+              height="13"
+              viewBox="0 0 27 13"
+              fill="none"
+              className="shrink-0"
+            >
+              {/* Outer rounded pill body */}
+              <rect
+                x="0.75"
+                y="1"
+                width="22"
+                height="11"
+                rx="3.5"
+                fill={clampedBattery <= 20 ? '#FF453A' : '#FFFFFF'}
+              />
+              {/* Cathode notch on right */}
+              <path
+                d="M24.2 4.5C25.05 4.82 25.55 5.55 25.55 6.5C25.55 7.45 25.05 8.18 24.2 8.5V4.5Z"
+                fill="white"
+                fillOpacity="0.45"
+              />
+            </svg>
+            {/* Battery percentage number inside pill */}
+            <span
+              className={`absolute left-0 top-0 w-[23.5px] h-full flex items-center justify-center font-bold text-[9px] leading-none tabular-nums select-none ${
+                clampedBattery <= 20 ? 'text-white' : 'text-black'
+              }`}
+              style={{ letterSpacing: '-0.04em' }}
+            >
+              {clampedBattery}
+            </span>
+          </div>
+        ) : (
+          <svg
+            width="27"
+            height="13"
+            viewBox="0 0 27 13"
+            fill="none"
+            aria-label={`Заряд батареи ${clampedBattery}%`}
+            className="shrink-0"
+          >
+            <rect
+              x="0.75"
+              y="1"
+              width="22"
+              height="11"
+              rx="3.5"
+              stroke="white"
+              strokeOpacity="0.4"
+              strokeWidth="1.15"
+            />
+            <rect
+              x="2.5"
+              y="2.75"
+              width={fillWidth}
+              height="7.5"
+              rx="1.8"
+              fill={clampedBattery <= 20 ? '#FF453A' : 'white'}
+            />
+            <path
+              d="M24.2 4.5C25.05 4.82 25.55 5.55 25.55 6.5C25.55 7.45 25.05 8.18 24.2 8.5V4.5Z"
+              fill="white"
+              fillOpacity="0.45"
+            />
+          </svg>
+        )}
       </div>
     </div>
   );

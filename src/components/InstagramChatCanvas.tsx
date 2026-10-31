@@ -65,6 +65,7 @@ export const InstagramChatCanvas = forwardRef<HTMLDivElement, InstagramChatCanva
             osType={settings.osType}
             time={settings.time}
             batteryLevel={settings.batteryLevel}
+            showBatteryPercentage={settings.showBatteryPercentage}
           />
           <InstagramHeader
             character={character}
@@ -78,28 +79,58 @@ export const InstagramChatCanvas = forwardRef<HTMLDivElement, InstagramChatCanva
         </div>
 
         {/* Middle Section: Authentic Instagram Direct Feed */}
-        <div className="flex-1 flex flex-col justify-end px-3.5 pt-3 pb-2 relative z-10">
-          {/* Optional Instagram Profile Mini-Header at top of short DMs */}
+        <div className="flex-1 flex flex-col justify-end px-3.5 pt-3 pb-2 relative z-10 overflow-hidden">
+          {/* Authentic Instagram Profile Header at start of chat */}
           {settings.showProfileIntro && (
-            <div className="flex flex-col items-center text-center pt-1 pb-4 mb-auto">
-              <img
-                src={character.avatar || DEFAULT_CUSTOM_AVATAR}
-                alt={character.name}
-                loading="eager"
-                decoding="sync"
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).src = DEFAULT_CUSTOM_AVATAR;
-                }}
-                className="w-16 h-16 rounded-full object-cover object-top bg-[#262626] mb-2.5"
-              />
-              <div className="flex items-center gap-1 justify-center">
-                <span className="text-[16px] font-semibold text-white">{character.name}</span>
-                {character.verified && <VerifiedBadge className="w-4 h-4" />}
+            <div className="flex flex-col items-center text-center pt-2 pb-4 mb-auto shrink-0 select-none">
+              <div className="relative mb-3">
+                <img
+                  src={character.avatar || DEFAULT_CUSTOM_AVATAR}
+                  alt={character.name}
+                  loading="eager"
+                  decoding="sync"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = DEFAULT_CUSTOM_AVATAR;
+                  }}
+                  className="w-[84px] h-[84px] rounded-full object-cover object-top bg-[#262626] border border-white/10"
+                />
               </div>
-              <p className="text-[13px] text-[#A8A8A8] mt-0.5">
-                {character.username} · Instagram
+
+              {/* Name & Blue Checkmark */}
+              <div className="flex items-center gap-1.5 justify-center">
+                <span className="text-[19px] sm:text-[20px] font-bold text-white tracking-[-0.01em]">
+                  {character.name}
+                </span>
+                {character.verified && <VerifiedBadge className="w-[18px] h-[18px]" />}
+              </div>
+
+              {/* Username */}
+              <p className="text-[14px] text-[#A8A8A8] mt-0.5 font-normal">
+                {character.username}
               </p>
-              <p className="text-[12px] text-[#737373] mt-0.5">{character.followers}</p>
+
+              {/* Stats: Подписчики: ... · Публикации: ... */}
+              <p className="text-[13px] text-[#A8A8A8] mt-2 font-normal leading-tight">
+                Подписчики: {character.followers ? character.followers.replace(/\s*подписчиков/i, '').trim() : '1,7 млн'} · Публикации: {character.postsCount || '162'}
+              </p>
+
+              {/* Relationship line */}
+              <p className="text-[13px] text-[#A8A8A8] mt-1 font-normal leading-tight">
+                Вы не подписаны друг на друга в Instagram
+              </p>
+
+              {/* Business chat link */}
+              <p className="text-[13px] text-[#3797F0] mt-1 font-normal leading-tight hover:underline cursor-pointer">
+                Подробнее о бизнес-чатах
+              </p>
+
+              {/* "Посмотреть профиль" Button */}
+              <button
+                type="button"
+                className="mt-3.5 px-4 py-1.5 rounded-lg bg-[#262626] hover:bg-[#333333] text-white text-[14px] font-semibold tracking-[-0.01em] transition-colors cursor-pointer"
+              >
+                Посмотреть профиль
+              </button>
             </div>
           )}
 
@@ -245,23 +276,29 @@ export const InstagramChatCanvas = forwardRef<HTMLDivElement, InstagramChatCanva
           )}
         </div>
 
-        {/* Semi-transparent Watermark Overlay when Free Mode */}
+        {/* Dense Anti-AI Security Watermark Grid Overlay when Free Mode */}
         {!isProUnlocked && (
           <div
             onClick={onOpenStarsModal}
-            title="Нажмите, чтобы убрать водяной знак за 39 Stars"
-            className="pointer-events-auto cursor-pointer absolute inset-0 z-20 flex flex-col items-center justify-center overflow-hidden select-none"
+            title="Нажмите, чтобы убрать водяные знаки за 39 Stars"
+            className="pointer-events-auto cursor-pointer absolute inset-0 z-20 flex items-center justify-center overflow-hidden select-none"
           >
-            <div className="-rotate-24 flex flex-col items-center gap-12 opacity-[0.22] pointer-events-none">
-              <span className="text-[22px] font-bold tracking-[0.18em] text-white whitespace-nowrap">
-                FAKE DIRECT · DEMO
-              </span>
-              <span className="text-[24px] font-bold tracking-[0.18em] text-white whitespace-nowrap">
-                @DIRECTCRAFT_BOT
-              </span>
-              <span className="text-[22px] font-bold tracking-[0.18em] text-white whitespace-nowrap">
-                FAKE DIRECT · DEMO
-              </span>
+            <div className="absolute w-[240%] h-[240%] -left-[70%] -top-[70%] -rotate-[25deg] flex flex-col justify-between pointer-events-none opacity-[0.28]">
+              {Array.from({ length: 24 }).map((_, rowIdx) => (
+                <div
+                  key={rowIdx}
+                  className={`flex gap-8 whitespace-nowrap font-mono font-black text-[13px] sm:text-[14px] tracking-[0.24em] text-white select-none ${
+                    rowIdx % 2 === 0 ? '-ml-16' : '-ml-48'
+                  }`}
+                  style={{ textShadow: '0 0 1px rgba(0,0,0,0.9)' }}
+                >
+                  {Array.from({ length: 6 }).map((_, colIdx) => (
+                    <span key={colIdx} className="shrink-0 drop-shadow-xs">
+                      @DIRECTCRAFT_BOT
+                    </span>
+                  ))}
+                </div>
+              ))}
             </div>
           </div>
         )}

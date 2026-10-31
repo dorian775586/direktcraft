@@ -70,11 +70,12 @@ export default function App() {
   const [settings, setSettings] = useState<DeviceSettings>({
     osType: 'ios',
     androidNavStyle: 'gesture',
-    time: '9:41',
-    batteryLevel: 84,
+    time: '12:21',
+    batteryLevel: 97,
     showOnlineDot: true,
     showSeenStatus: true,
-    showProfileIntro: false,
+    showProfileIntro: true,
+    showBatteryPercentage: true,
     dateDivider: 'Сегодня, 9:38',
     bubbleTheme: 'solid_0095f6',
   });
@@ -814,7 +815,14 @@ export default function App() {
       <DeviceSettingsModal
         isOpen={isSettingsModalOpen}
         settings={settings}
+        activeCharacter={activeCharacter}
         onUpdateSettings={(patch) => setSettings((prev) => ({ ...prev, ...patch }))}
+        onUpdateCharacter={(patch) => {
+          setActiveCharacter((prev) => ({ ...prev, ...patch }));
+          setCharacters((prev) =>
+            prev.map((c) => (c.id === activeCharacter.id ? { ...c, ...patch } : c))
+          );
+        }}
         onClose={() => setIsSettingsModalOpen(false)}
       />
 

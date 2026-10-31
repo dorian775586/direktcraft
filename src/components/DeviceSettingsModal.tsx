@@ -1,18 +1,22 @@
 import React from 'react';
-import { DeviceSettings } from '../types/chat';
+import { DeviceSettings, Character } from '../types/chat';
 import { X } from 'lucide-react';
 
 interface DeviceSettingsModalProps {
   isOpen: boolean;
   settings: DeviceSettings;
+  activeCharacter?: Character;
   onUpdateSettings: (patch: Partial<DeviceSettings>) => void;
+  onUpdateCharacter?: (patch: Partial<Character>) => void;
   onClose: () => void;
 }
 
 export const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
   isOpen,
   settings,
+  activeCharacter,
   onUpdateSettings,
+  onUpdateCharacter,
   onClose,
 }) => {
   if (!isOpen) return null;
@@ -123,7 +127,7 @@ export const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
                 type="text"
                 value={settings.time}
                 onChange={(e) => onUpdateSettings({ time: e.target.value })}
-                placeholder="9:41"
+                placeholder="12:21"
                 maxLength={8}
                 className="w-full h-11 px-3.5 rounded-xl bg-[#1C1C22] border border-white/10 text-sm text-white tabular-nums focus:outline-none focus:border-[#3797F0]"
               />
@@ -157,6 +161,41 @@ export const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
               className="w-full h-11 px-3.5 rounded-xl bg-[#1C1C22] border border-white/10 text-sm text-white focus:outline-none focus:border-[#0095F6]"
             />
           </div>
+
+          {/* Custom profile stats (Followers & Publications) for active character */}
+          {activeCharacter && onUpdateCharacter && (
+            <div className="p-3 rounded-2xl bg-[#1C1C22] border border-white/10 space-y-2.5">
+              <span className="block text-xs font-semibold text-white">
+                Данные профиля Instagram ({activeCharacter.name})
+              </span>
+              <div className="grid grid-cols-2 gap-2.5">
+                <div>
+                  <label className="block text-[11px] text-zinc-400 mb-1">
+                    Подписчики
+                  </label>
+                  <input
+                    type="text"
+                    value={activeCharacter.followers || ''}
+                    onChange={(e) => onUpdateCharacter({ followers: e.target.value })}
+                    placeholder="1,7 млн"
+                    className="w-full h-9 px-3 rounded-lg bg-[#141418] border border-white/10 text-xs text-white focus:outline-none focus:border-[#0095F6]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] text-zinc-400 mb-1">
+                    Публикации
+                  </label>
+                  <input
+                    type="text"
+                    value={activeCharacter.postsCount || ''}
+                    onChange={(e) => onUpdateCharacter({ postsCount: e.target.value })}
+                    placeholder="162"
+                    className="w-full h-9 px-3 rounded-lg bg-[#141418] border border-white/10 text-xs text-white focus:outline-none focus:border-[#0095F6]"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Bubble Theme Switcher (Solid only) */}
           <div>
@@ -194,6 +233,36 @@ export const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
 
           {/* Toggles */}
           <div className="space-y-2 pt-1">
+            {/* iOS Battery Percentage In Digits Toggle */}
+            <button
+              type="button"
+              onClick={() => onUpdateSettings({ showBatteryPercentage: !settings.showBatteryPercentage })}
+              className="w-full min-h-[44px] px-3.5 rounded-xl bg-[#1C1C22] border border-white/10 flex items-center justify-between text-xs text-zinc-200 cursor-pointer"
+            >
+              <div className="flex flex-col text-left">
+                <span>Заряд батареи цифрами на iPhone</span>
+                <span className="text-[10px] text-zinc-400">Процент внутри значка аккумулятора (как в iOS)</span>
+              </div>
+              <span className={settings.showBatteryPercentage ? 'text-[#0095F6] font-semibold' : 'text-zinc-500'}>
+                {settings.showBatteryPercentage ? 'Вкл (цифры)' : 'Выкл'}
+              </span>
+            </button>
+
+            {/* Profile Intro Card Toggle */}
+            <button
+              type="button"
+              onClick={() => onUpdateSettings({ showProfileIntro: !settings.showProfileIntro })}
+              className="w-full min-h-[44px] px-3.5 rounded-xl bg-[#1C1C22] border border-white/10 flex items-center justify-between text-xs text-zinc-200 cursor-pointer"
+            >
+              <div className="flex flex-col text-left">
+                <span>Шапка профиля сверху чата</span>
+                <span className="text-[10px] text-zinc-400">Подписчики, публикации, ссылка и кнопка</span>
+              </div>
+              <span className={settings.showProfileIntro ? 'text-[#0095F6] font-semibold' : 'text-zinc-500'}>
+                {settings.showProfileIntro ? 'Вкл' : 'Выкл'}
+              </span>
+            </button>
+
             <button
               type="button"
               onClick={() => onUpdateSettings({ showOnlineDot: !settings.showOnlineDot })}
@@ -213,17 +282,6 @@ export const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
               <span>Подпись «Просмотрено» под моим сообщением</span>
               <span className={settings.showSeenStatus ? 'text-[#0095F6] font-semibold' : 'text-zinc-500'}>
                 {settings.showSeenStatus ? 'Вкл' : 'Выкл'}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => onUpdateSettings({ showProfileIntro: !settings.showProfileIntro })}
-              className="w-full min-h-[42px] px-3.5 rounded-xl bg-[#1C1C22] border border-white/10 flex items-center justify-between text-xs text-zinc-200 cursor-pointer"
-            >
-              <span>Карточка профиля персонажа вверху чата</span>
-              <span className={settings.showProfileIntro ? 'text-[#0095F6] font-semibold' : 'text-zinc-500'}>
-                {settings.showProfileIntro ? 'Вкл' : 'Выкл'}
               </span>
             </button>
           </div>

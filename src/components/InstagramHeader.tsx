@@ -102,7 +102,7 @@ export const InstagramHeader: React.FC<InstagramHeaderProps> = ({
               {character.verified && <VerifiedBadge className="w-[14px] h-[14px]" />}
             </div>
             <span className="text-[12px] leading-[15px] text-[#A8A8A8] truncate">
-              {character.statusText || `@${character.username}`}
+              {character.username || character.statusText}
             </span>
           </div>
         </div>

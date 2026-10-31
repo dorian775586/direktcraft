@@ -6,6 +6,7 @@ export interface Character {
   username: string;
   category: CharacterCategory;
   followers: string;
+  postsCount?: string;
   avatar: string;
   verified: boolean;
   isOnline: boolean;
@@ -45,6 +46,8 @@ export interface DeviceSettings {
   showOnlineDot: boolean;
   showSeenStatus: boolean;
   showProfileIntro: boolean;
+  showBatteryPercentage: boolean;
   dateDivider: string;
   bubbleTheme: BubbleTheme;
 }
+

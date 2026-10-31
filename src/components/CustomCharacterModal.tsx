@@ -21,7 +21,8 @@ export const CustomCharacterModal: React.FC<CustomCharacterModalProps> = ({
   const [name, setName] = useState(initialCharacter?.name || '');
   const [username, setUsername] = useState(initialCharacter?.username || '');
   const [statusText, setStatusText] = useState(initialCharacter?.statusText || 'В сети');
-  const [followers, setFollowers] = useState(initialCharacter?.followers || '1.2M подписчиков');
+  const [followers, setFollowers] = useState(initialCharacter?.followers || '1,7 млн');
+  const [postsCount, setPostsCount] = useState(initialCharacter?.postsCount || '162');
   const [verified, setVerified] = useState(initialCharacter?.verified ?? true);
   const [isOnline, setIsOnline] = useState(initialCharacter?.isOnline ?? true);
   const [avatar, setAvatar] = useState(initialCharacter?.avatar || DEFAULT_CUSTOM_AVATAR);
@@ -31,7 +32,8 @@ export const CustomCharacterModal: React.FC<CustomCharacterModalProps> = ({
       setName(initialCharacter?.name || '');
       setUsername(initialCharacter?.username || '');
       setStatusText(initialCharacter?.statusText || 'В сети');
-      setFollowers(initialCharacter?.followers || '1.2M подписчиков');
+      setFollowers(initialCharacter?.followers || '1,7 млн');
+      setPostsCount(initialCharacter?.postsCount || '162');
       setVerified(initialCharacter?.verified ?? true);
       setIsOnline(initialCharacter?.isOnline ?? true);
       setAvatar(initialCharacter?.avatar || DEFAULT_CUSTOM_AVATAR);
@@ -63,7 +65,8 @@ export const CustomCharacterModal: React.FC<CustomCharacterModalProps> = ({
       name: cleanName,
       username: cleanUsername,
       category: 'Свой',
-      followers: followers.trim() || '850K подписчиков',
+      followers: followers.trim() || '1,7 млн',
+      postsCount: postsCount.trim() || '162',
       avatar: avatar || DEFAULT_CUSTOM_AVATAR,
       verified,
       isOnline,
@@ -183,13 +186,13 @@ export const CustomCharacterModal: React.FC<CustomCharacterModalProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-zinc-300 mb-1.5">
-                Статус под именем
+                Подписчики (в шапке)
               </label>
               <input
                 type="text"
-                value={statusText}
-                onChange={(e) => setStatusText(e.target.value)}
-                placeholder="В сети"
+                value={followers}
+                onChange={(e) => setFollowers(e.target.value)}
+                placeholder="1,7 млн"
                 maxLength={28}
                 className="w-full h-11 px-3.5 rounded-xl bg-[#1C1C22] border border-white/10 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-[#0095F6]"
               />
@@ -197,13 +200,13 @@ export const CustomCharacterModal: React.FC<CustomCharacterModalProps> = ({
 
             <div>
               <label className="block text-xs font-medium text-zinc-300 mb-1.5">
-                Подписчики (для интро)
+                Публикации (в шапке)
               </label>
               <input
                 type="text"
-                value={followers}
-                onChange={(e) => setFollowers(e.target.value)}
-                placeholder="640M подписчиков"
+                value={postsCount}
+                onChange={(e) => setPostsCount(e.target.value)}
+                placeholder="162"
                 maxLength={28}
                 className="w-full h-11 px-3.5 rounded-xl bg-[#1C1C22] border border-white/10 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-[#0095F6]"
               />
