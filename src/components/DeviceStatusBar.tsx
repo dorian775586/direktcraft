@@ -72,9 +72,11 @@ export const DeviceStatusBar: React.FC<DeviceStatusBarProps> = ({
 
           {/* Android Vertical/Modern Battery with % */}
           <div className="flex items-center gap-1 shrink-0">
-            <span className="text-[11px] font-medium leading-none tabular-nums text-zinc-300">
-              {clampedBattery}%
-            </span>
+            {showBatteryPercentage && (
+              <span className="text-[11px] font-medium leading-none tabular-nums text-zinc-300">
+                {clampedBattery}%
+              </span>
+            )}
             <svg
               width="11"
               height="16"
@@ -93,11 +95,21 @@ export const DeviceStatusBar: React.FC<DeviceStatusBarProps> = ({
                 stroke="white"
                 strokeWidth="1.2"
               />
+              {/* Gray background for missing charge */}
               <rect
                 x="2"
-                y={17 - Math.round((clampedBattery / 100) * 13)}
+                y="4"
                 width="8"
-                height={Math.round((clampedBattery / 100) * 13)}
+                height="13.5"
+                rx="1"
+                fill="rgba(255, 255, 255, 0.25)"
+              />
+              {/* Active charge level (fills from bottom to top) */}
+              <rect
+                x="2"
+                y={17.5 - Math.round((clampedBattery / 100) * 13.5)}
+                width="8"
+                height={Math.round((clampedBattery / 100) * 13.5)}
                 rx="1"
                 fill={clampedBattery <= 20 ? '#EF4444' : 'white'}
               />
@@ -109,7 +121,10 @@ export const DeviceStatusBar: React.FC<DeviceStatusBarProps> = ({
   }
 
   // iOS (iPhone) Status Bar
-  const fillWidth = Math.round((clampedBattery / 100) * 18);
+  // Total fill width inside pill is 24.5px, height is 12px, rx is 3.8px
+  const activeFillWidth = Math.max(1.5, Math.min(24.5, (clampedBattery / 100) * 24.5));
+  const isLowBattery = clampedBattery <= 20;
+  const fillColor = isLowBattery ? '#FF453A' : '#FFFFFF';
 
   return (
     <div className="ios-font flex items-center justify-between px-6 pt-3.5 pb-2 bg-black text-white select-none shrink-0">
@@ -135,7 +150,7 @@ export const DeviceStatusBar: React.FC<DeviceStatusBarProps> = ({
           <rect x="14.5" y="1" width="3" height="10.5" rx="1" fill="white" />
         </svg>
 
-        {/* iOS Wi-Fi Icon */}
+        {/* iOS Wi-Fi Icon (Authentic Apple iOS SF Symbols) */}
         <svg
           width="16"
           height="12"
@@ -144,109 +159,99 @@ export const DeviceStatusBar: React.FC<DeviceStatusBarProps> = ({
           aria-label="Wi-Fi"
           className="shrink-0"
         >
+          <circle cx="8" cy="10.2" r="1.3" fill="white" />
           <path
-            d="M8 9.6C8.77 9.6 9.4 10.23 9.4 11C9.4 11.77 8.77 12.4 8 12.4C7.23 12.4 6.6 11.77 6.6 11C6.6 10.23 7.23 9.6 8 9.6Z"
-            fill="white"
-          />
-          <path
-            d="M4.65 7.75C5.55 6.85 6.72 6.35 8 6.35C9.28 6.35 10.45 6.85 11.35 7.75"
+            d="M4.9 7.1C5.75 6.25 6.85 5.8 8 5.8C9.15 5.8 10.25 6.25 11.1 7.1"
             stroke="white"
-            strokeWidth="1.65"
+            strokeWidth="1.8"
             strokeLinecap="round"
           />
           <path
-            d="M2.15 5.2C3.72 3.63 5.79 2.75 8 2.75C10.21 2.75 12.28 3.63 13.85 5.2"
+            d="M2.3 4.5C3.85 2.95 5.85 2.1 8 2.1C10.15 2.1 12.15 2.95 13.7 4.5"
             stroke="white"
-            strokeWidth="1.65"
+            strokeWidth="1.8"
             strokeLinecap="round"
           />
         </svg>
 
-        {/* iOS Battery Icon (Authentic Apple iOS Status Bar) */}
-        {showBatteryPercentage ? (
-          <div
-            className="relative flex items-center justify-center shrink-0 w-[27px] h-[13px]"
-            aria-label={`Заряд батареи ${clampedBattery}`}
-          >
-            <svg
-              width="27"
-              height="13"
-              viewBox="0 0 27 13"
-              fill="none"
-              className="shrink-0 block"
-            >
-              {/* Outer rounded pill body (authentic 24.5px x 12px with 3.8px radius) */}
-              <rect
-                x="0"
-                y="0.5"
-                width="24.5"
-                height="12"
-                rx="3.8"
-                fill={clampedBattery <= 20 ? '#FF453A' : '#FFFFFF'}
-              />
-              {/* Cathode bump on right */}
-              <path
-                d="M25.5 4.3C26.15 4.55 26.55 5.15 26.55 6.5C26.55 7.85 26.15 8.45 25.5 8.7V4.3Z"
-                fill="white"
-                fillOpacity="0.4"
-              />
-            </svg>
-            {/* Battery digits: authentic SF Pro Text semibold, optical cap-height centering, exact scale */}
-            <span
-              className={`absolute flex items-center justify-center leading-none tabular-nums select-none pointer-events-none ${
-                clampedBattery <= 20 ? 'text-white' : 'text-black'
-              }`}
-              style={{
-                left: '0px',
-                top: '0.5px',
-                width: '24.5px',
-                height: '12px',
-                fontFamily:
-                  '"SF Pro Text", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif',
-                fontWeight: 600,
-                fontSize: clampedBattery === 100 ? '9.5px' : '11.5px',
-                letterSpacing: clampedBattery === 100 ? '-0.55px' : '-0.45px',
-                transform: 'translateY(-0.35px)',
-                textAlign: 'center',
-              }}
-            >
-              {clampedBattery}
-            </span>
-          </div>
-        ) : (
+        {/* iOS Battery Icon (Scales with batteryLevel, gray missing charge, centered always-black digits) */}
+        <div
+          className="relative flex items-center justify-center shrink-0 w-[27px] h-[13px]"
+          aria-label={`Заряд батареи ${clampedBattery}%`}
+        >
           <svg
             width="27"
             height="13"
             viewBox="0 0 27 13"
             fill="none"
-            aria-label={`Заряд батареи ${clampedBattery}`}
-            className="shrink-0"
+            className="shrink-0 block"
           >
+            <defs>
+              <clipPath id="iosBatteryPillClip">
+                <rect x="0" y="0.5" width="24.5" height="12" rx="3.8" />
+              </clipPath>
+            </defs>
+
+            {/* Battery interior clipped to rounded pill */}
+            <g clipPath="url(#iosBatteryPillClip)">
+              {/* Gray background on the entire pill for the missing charge */}
+              <rect
+                x="0"
+                y="0.5"
+                width="24.5"
+                height="12"
+                fill="rgba(255, 255, 255, 0.28)"
+              />
+              {/* Active charge level filling from left to right */}
+              <rect
+                x="0"
+                y="0.5"
+                width={activeFillWidth}
+                height="12"
+                fill={fillColor}
+              />
+            </g>
+
+            {/* Outer border for subtle authentic iOS definition */}
             <rect
               x="0.5"
-              y="0.75"
+              y="1"
               width="23.5"
-              height="11.5"
-              rx="3.8"
+              height="11"
+              rx="3.3"
               stroke="white"
-              strokeOpacity="0.35"
-              strokeWidth="1.1"
+              strokeOpacity="0.25"
+              strokeWidth="0.8"
             />
-            <rect
-              x="2.2"
-              y="2.4"
-              width={Math.round((clampedBattery / 100) * 19.5)}
-              height="8.2"
-              rx="1.8"
-              fill={clampedBattery <= 20 ? '#FF453A' : 'white'}
-            />
+
+            {/* Cathode bump on right */}
             <path
               d="M25.5 4.3C26.15 4.55 26.55 5.15 26.55 6.5C26.55 7.85 26.15 8.45 25.5 8.7V4.3Z"
               fill="white"
               fillOpacity="0.4"
             />
+
+            {/* Battery digits: ALWAYS BLACK (#000000), perfectly centered in the pill */}
+            {showBatteryPercentage && (
+              <text
+                x="12.25"
+                y="6.7"
+                textAnchor="middle"
+                dominantBaseline="central"
+                fill="#000000"
+                style={{
+                  fontFamily:
+                    '"SF Pro Text", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif',
+                  fontWeight: 600,
+                  fontSize: clampedBattery === 100 ? '9px' : '10.5px',
+                  letterSpacing: clampedBattery === 100 ? '-0.5px' : '-0.3px',
+                }}
+              >
+                {clampedBattery}
+              </text>
+            )}
           </svg>
-        )}
+        </div>
       </div>
     </div>
   );

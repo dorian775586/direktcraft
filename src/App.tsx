@@ -213,8 +213,15 @@ export default function App() {
     mobileScreen,
   ]);
 
+  const currentChatIdRef = useRef(activeChatId);
+
   // 4. Automatically persist active chat updates to savedChats and localStorage
   useEffect(() => {
+    // If the active chat ID changed, we just loaded/switched to a different chat, so do not overwrite it!
+    if (currentChatIdRef.current !== activeChatId) {
+      currentChatIdRef.current = activeChatId;
+      return;
+    }
     setSavedChats((prev) => {
       const idx = prev.findIndex((c) => c.id === activeChatId);
       if (idx === -1) return prev;
@@ -242,18 +249,23 @@ export default function App() {
     const target = savedChats.find((c) => c.id === chatId);
     if (!target) return;
     triggerHaptic('selection');
+    currentChatIdRef.current = target.id;
     setActiveChatId(target.id);
     setActiveCharacter(target.character);
     setMessages(target.messages);
     setSettings(target.settings);
     setSelectedMessageId(null);
-    showToast(`Открыт: ${target.character.name}`);
+    setMobileScreen('chat');
+    setDesktopTab('constructor');
+    showToast(`Открыт диалог: ${target.character.name}`);
   };
 
   const handleCreateNewSavedChat = () => {
     if (!isProUnlocked && savedChats.length >= FREE_SAVED_CHATS_LIMIT) {
       setMessages([]);
       setSelectedMessageId(null);
+      setMobileScreen('chat');
+      setDesktopTab('constructor');
       showToast('Диалог очищен для новых сообщений');
       return;
     }
@@ -279,11 +291,14 @@ export default function App() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(nextList));
     } catch {}
 
+    currentChatIdRef.current = newChat.id;
     setActiveChatId(newChat.id);
     setActiveCharacter(newChat.character);
     setMessages(newChat.messages);
     setSettings(newChat.settings);
     setSelectedMessageId(null);
+    setMobileScreen('chat');
+    setDesktopTab('constructor');
     showToast(`Создан слот ${nextList.length}/${isProUnlocked ? '∞' : FREE_SAVED_CHATS_LIMIT}: «${newChat.character.name}»`);
   };
 
@@ -311,7 +326,14 @@ export default function App() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(nextList));
     } catch {}
+    currentChatIdRef.current = copyChat.id;
     setActiveChatId(copyChat.id);
+    setActiveCharacter(copyChat.character);
+    setMessages(copyChat.messages);
+    setSettings(copyChat.settings);
+    setSelectedMessageId(null);
+    setMobileScreen('chat');
+    setDesktopTab('constructor');
     showToast(`Создана копия диалога «${target.character.name}»`);
   };
 
@@ -453,20 +475,32 @@ export default function App() {
     setSelectedMessageId(null);
     triggerHaptic('medium');
 
+    // Measure exact scroll position of the chat feed right before export
+    const feed = captureRef.current.querySelector<HTMLElement>('[data-chat-feed="true"]');
+    const inner = captureRef.current.querySelector<HTMLElement>('[data-chat-feed-inner="true"]');
+    const savedScrollTop = feed ? feed.scrollTop : 0;
+
     try {
-      // 1. Give React time to commit the export state (unselecting message, switching feed to export layout)
-      await new Promise((resolve) => setTimeout(resolve, 80));
+      // 1. Give React time to commit unselected message state
+      await new Promise((resolve) => setTimeout(resolve, 60));
 
       if (!captureRef.current) return;
 
       // 2. Ensure all images (header avatar, DM incoming avatars) are inlined as base64 data URIs
       await ensureAllImagesInlinedAsDataUris(captureRef.current);
 
+      // 3. Lock exact scroll offset via CSS transform so html-to-image clone captures exact position
+      if (feed && inner && savedScrollTop > 0) {
+        feed.scrollTop = 0;
+        feed.style.overflow = 'hidden';
+        inner.style.transform = `translateY(-${savedScrollTop}px)`;
+      }
+
       const filename = `instagram-direct-${activeCharacter.username}${
         isProUnlocked ? '' : '-demo'
       }.png`;
 
-      // 3. Explicit pixel dimensions prevent SVG foreignObject flex layout collapse
+      // 4. Explicit pixel dimensions prevent SVG foreignObject flex layout collapse
       const nodeWidth = captureRef.current.offsetWidth || 393;
       const nodeHeight = captureRef.current.offsetHeight || Math.round((nodeWidth * 16) / 9);
 
@@ -492,7 +526,7 @@ export default function App() {
 
       setCapturedPngUrl(dataUrl);
 
-      // 4. Trigger automatic reliable save / download
+      // 5. Trigger automatic reliable save / download
       if (isMobileDevice()) {
         shareOrSaveImage(dataUrl, filename).catch(() => {
           downloadImageFile(dataUrl, filename);
@@ -508,6 +542,11 @@ export default function App() {
       try {
         if (captureRef.current) {
           await ensureAllImagesInlinedAsDataUris(captureRef.current);
+          if (feed && inner && savedScrollTop > 0) {
+            feed.scrollTop = 0;
+            feed.style.overflow = 'hidden';
+            inner.style.transform = `translateY(-${savedScrollTop}px)`;
+          }
           const nodeWidth = captureRef.current.offsetWidth || 393;
           const nodeHeight = captureRef.current.offsetHeight || Math.round((nodeWidth * 16) / 9);
           const fallbackDataUrl = await toPng(captureRef.current, {
@@ -540,6 +579,12 @@ export default function App() {
       }
       showToast('Не удалось сформировать PNG. Попробуйте еще раз.');
     } finally {
+      // Restore natural live DOM scroll and styling
+      if (feed && inner) {
+        inner.style.transform = '';
+        feed.style.overflow = '';
+        feed.scrollTop = savedScrollTop;
+      }
       setIsExporting(false);
     }
   };
@@ -873,7 +918,7 @@ export default function App() {
                     {settings.osType === 'android' ? 'Android' : 'iOS'}
                   </span>
                 </span>
-                <div className="inline-flex items-center gap-1">
+                <div className="inline-flex items-center gap-1 pr-1">
                   <button
                     type="button"
                     onClick={() => {
@@ -905,14 +950,6 @@ export default function App() {
                     <span>Android</span>
                   </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setIsSettingsModalOpen(true)}
-                  title="Настройки часов, батареи и навигации"
-                  className="p-2 rounded-xl hover:bg-white/10 text-zinc-300 transition-colors cursor-pointer"
-                >
-                  <SlidersHorizontal className="w-4 h-4" />
-                </button>
               </div>
 
               {/* Chat Scroll Quick Controls */}
@@ -986,59 +1023,7 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Mobile Quick Action Buttons directly beneath phone */}
-              <div className="w-full mt-3 flex flex-col gap-2 px-1 lg:hidden">
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    disabled={isExporting}
-                    onClick={handleExportScreenshot}
-                    className="min-h-[48px] px-3.5 rounded-2xl bg-white hover:bg-zinc-200 text-zinc-950 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-md"
-                  >
-                    <Download className="w-4 h-4 shrink-0" />
-                    <span>{isExporting ? 'Рендеринг...' : 'Скачать скриншот'}</span>
-                  </button>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      triggerHaptic('medium');
-                      setIsStarsModalOpen(true);
-                    }}
-                    className={`min-h-[48px] px-3.5 rounded-2xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-md ${
-                      isProUnlocked
-                        ? 'bg-emerald-500 hover:bg-emerald-400 text-black'
-                        : 'bg-white hover:bg-zinc-200 text-zinc-950'
-                    }`}
-                  >
-                    <Sparkles className="w-4 h-4 shrink-0" />
-                    <span>{isProUnlocked ? 'Знаки убраны' : 'Убрать водяные знаки'}</span>
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      triggerHaptic('selection');
-                      setMobileScreen('roster');
-                      setDesktopTab('roster');
-                    }}
-                    className="min-h-[42px] px-3 rounded-xl bg-[#181822] hover:bg-[#20202C] border border-white/10 text-xs font-semibold text-white flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                  >
-                    <ArrowLeft className="w-4 h-4 text-[#0095F6]" />
-                    <span>Назад к персонажам</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsSettingsModalOpen(true)}
-                    className="min-h-[42px] px-3 rounded-xl bg-[#181822] hover:bg-[#20202C] border border-white/10 text-xs font-semibold text-zinc-300 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                  >
-                    <SlidersHorizontal className="w-3.5 h-3.5" />
-                    <span>Настройки экрана</span>
-                  </button>
-                </div>
-              </div>
 
               {/* On mobile: MessageConstructorPanel rendered directly on the SAME page right below the preview */}
               <div className="w-full max-w-[393px] mt-4 px-1 pb-10 lg:hidden">

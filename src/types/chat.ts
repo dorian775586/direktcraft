@@ -27,11 +27,13 @@ export interface ChatMessage {
 }
 
 export type BubbleTheme =
+  | 'solid_0095f6'
+  | 'purple'
+  | 'solid_purple'
+  | 'messenger_blue'
   | 'ig_gradient'
   | 'ig_purple_blue'
   | 'ig_sunset'
-  | 'messenger_blue'
-  | 'solid_0095f6'
   | 'gradient'
   | 'classic_blue';
 

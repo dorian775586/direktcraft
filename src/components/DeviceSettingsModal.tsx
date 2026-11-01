@@ -213,31 +213,44 @@ export const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
             <span className="block text-xs font-medium text-zinc-300 mb-1.5">
               Цвет исходящих сообщений (сплошной)
             </span>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
                 onClick={() => onUpdateSettings({ bubbleTheme: 'solid_0095f6' })}
-                className={`min-h-[42px] px-3 rounded-xl border text-xs font-medium flex items-center justify-center gap-2 transition-colors cursor-pointer ${
+                className={`min-h-[42px] px-2 rounded-xl border text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
                   settings.bubbleTheme === 'solid_0095f6' || settings.bubbleTheme === 'classic_blue' || settings.bubbleTheme === 'gradient' || settings.bubbleTheme === 'ig_gradient'
                     ? 'bg-[#252530] border-[#0095F6] text-white shadow-xs'
                     : 'bg-[#1C1C22] border-white/10 text-zinc-400'
                 }`}
               >
                 <span className="w-3 h-3 rounded-full bg-[#0095F6] shrink-0" />
-                <span>Синий (#0095F6)</span>
+                <span className="truncate">Синий</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onUpdateSettings({ bubbleTheme: 'purple' })}
+                className={`min-h-[42px] px-2 rounded-xl border text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
+                  settings.bubbleTheme === 'purple' || settings.bubbleTheme === 'solid_purple' || settings.bubbleTheme === 'ig_purple_blue'
+                    ? 'bg-[#252530] border-[#7000FF] text-white shadow-xs ring-1 ring-[#7000FF]/40'
+                    : 'bg-[#1C1C22] border-white/10 text-zinc-400'
+                }`}
+              >
+                <span className="w-3 h-3 rounded-full bg-[#7000FF] shrink-0" />
+                <span className="truncate">Фиолетовый</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => onUpdateSettings({ bubbleTheme: 'messenger_blue' })}
-                className={`min-h-[42px] px-3 rounded-xl border text-xs font-medium flex items-center justify-center gap-2 transition-colors cursor-pointer ${
+                className={`min-h-[42px] px-2 rounded-xl border text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
                   settings.bubbleTheme === 'messenger_blue'
                     ? 'bg-[#252530] border-[#0084FE] text-white shadow-xs'
                     : 'bg-[#1C1C22] border-white/10 text-zinc-400'
                 }`}
               >
                 <span className="w-3 h-3 rounded-full bg-[#0084FE] shrink-0" />
-                <span>Meta (#0084FE)</span>
+                <span className="truncate">Meta</span>
               </button>
             </div>
           </div>

@@ -220,36 +220,79 @@ export const MessageConstructorPanel: React.FC<MessageConstructorPanelProps> = (
       )}
 
       {/* Sender Toggle: From Celebrity vs From User */}
-      <div className="grid grid-cols-2 gap-1.5 p-1 bg-[#18181E] rounded-2xl border border-white/[0.06]">
-        <button
-          type="button"
-          onClick={() => setSender('them')}
-          className={`min-h-[42px] px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer truncate ${
-            sender === 'them'
-              ? 'bg-[#2A2A33] text-white shadow-xs'
-              : 'text-zinc-400 hover:text-zinc-200'
-          }`}
-        >
-          <img
-            src={character.avatar || DEFAULT_CUSTOM_AVATAR}
-            alt={character.name}
-            referrerPolicy="no-referrer"
-            className="w-5 h-5 rounded-full object-cover object-top shrink-0"
-          />
-          <span className="truncate">От {character.name.split(' ')[0]}</span>
-        </button>
+      <div className="space-y-1.5">
+        <div className="grid grid-cols-2 gap-1.5 p-1 bg-[#18181E] rounded-2xl border border-white/[0.06]">
+          <button
+            type="button"
+            onClick={() => setSender('them')}
+            className={`min-h-[42px] px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer truncate ${
+              sender === 'them'
+                ? 'bg-[#2A2A33] text-white shadow-xs'
+                : 'text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            <img
+              src={character.avatar || DEFAULT_CUSTOM_AVATAR}
+              alt={character.name}
+              referrerPolicy="no-referrer"
+              className="w-5 h-5 rounded-full object-cover object-top shrink-0"
+            />
+            <span className="truncate">От {character.name.split(' ')[0]}</span>
+          </button>
 
-        <button
-          type="button"
-          onClick={() => setSender('me')}
-          className={`min-h-[42px] px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
-            sender === 'me'
-              ? 'bg-[#0095F6] text-white shadow-xs'
-              : 'text-zinc-400 hover:text-zinc-200'
-          }`}
-        >
-          <span>От меня (Синий #0095F6)</span>
-        </button>
+          <button
+            type="button"
+            onClick={() => setSender('me')}
+            className={`min-h-[42px] px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer truncate ${
+              sender === 'me'
+                ? bubbleTheme === 'purple' || bubbleTheme === 'solid_purple' || bubbleTheme === 'ig_purple_blue'
+                  ? 'bg-[#7000FF] text-white shadow-xs'
+                  : bubbleTheme === 'messenger_blue'
+                  ? 'bg-[#0084FE] text-white shadow-xs'
+                  : 'bg-[#0095F6] text-white shadow-xs'
+                : 'text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            <span>
+              От меня (
+              {bubbleTheme === 'purple' || bubbleTheme === 'solid_purple' || bubbleTheme === 'ig_purple_blue'
+                ? 'Фиолетовый'
+                : 'Синий'}
+              )
+            </span>
+          </button>
+        </div>
+
+        {/* Quick color selector for outgoing bubbles */}
+        <div className="flex items-center justify-between px-2 text-[11px] text-zinc-400">
+          <span>Цвет моих сообщений:</span>
+          <div className="inline-flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => onSelectBubbleTheme('solid_0095f6')}
+              className={`px-2 py-0.5 rounded-lg flex items-center gap-1 cursor-pointer transition-colors ${
+                bubbleTheme !== 'purple' && bubbleTheme !== 'solid_purple' && bubbleTheme !== 'ig_purple_blue' && bubbleTheme !== 'messenger_blue'
+                  ? 'bg-[#0095F6]/20 text-[#3797F0] border border-[#0095F6]/50 font-bold'
+                  : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              <span className="w-2.5 h-2.5 rounded-full bg-[#0095F6]" />
+              <span>Синий</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onSelectBubbleTheme('purple')}
+              className={`px-2 py-0.5 rounded-lg flex items-center gap-1 cursor-pointer transition-colors ${
+                bubbleTheme === 'purple' || bubbleTheme === 'solid_purple' || bubbleTheme === 'ig_purple_blue'
+                  ? 'bg-[#7000FF]/25 text-[#A855F7] border border-[#7000FF]/60 font-bold'
+                  : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              <span className="w-2.5 h-2.5 rounded-full bg-[#7000FF]" />
+              <span>Фиолетовый</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Message Input Form */}

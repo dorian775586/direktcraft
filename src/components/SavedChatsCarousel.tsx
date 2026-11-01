@@ -113,13 +113,54 @@ export const SavedChatsCarousel: React.FC<SavedChatsCarouselProps> = ({
         </button>
       </div>
 
+      {/* Quick Chat Tabs (if more than 1 saved chat) */}
+      {savedChats.length > 1 && (
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-2.5 mb-1">
+          {savedChats.map((c, idx) => {
+            const isSelected = c.id === activeChatId;
+            return (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => {
+                  triggerHaptic('selection');
+                  onSelectChat(c.id);
+                }}
+                className={`min-h-[34px] px-2.5 py-1 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                  isSelected
+                    ? 'bg-[#0095F6] text-white shadow-sm ring-1 ring-white/20'
+                    : 'bg-white/[0.06] hover:bg-white/[0.12] text-zinc-300 hover:text-white'
+                }`}
+              >
+                <img
+                  src={c.character.avatar || DEFAULT_CUSTOM_AVATAR}
+                  alt={c.character.name}
+                  className="w-4 h-4 rounded-full object-cover object-top"
+                />
+                <span className="truncate max-w-[100px]">{c.character.name.split(' ')[0]}</span>
+                <span className="text-[10px] opacity-75">({c.messages.length})</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Active Chat Card with Left / Right Navigation */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-b from-[#181822] to-[#14141B] border border-white/[0.08] p-3">
+      <div
+        onClick={() => {
+          triggerHaptic('selection');
+          onSelectChat(currentChat.id);
+        }}
+        className="relative overflow-hidden rounded-2xl bg-gradient-to-b from-[#181822] to-[#14141B] border border-white/[0.08] hover:border-[#0095F6]/50 transition-all p-3 cursor-pointer group"
+      >
         <div className="flex items-center justify-between gap-2">
           {/* Left Arrow Button */}
           <button
             type="button"
-            onClick={handlePrev}
+            onClick={(e) => {
+              e.stopPropagation();
+              handlePrev();
+            }}
             disabled={savedChats.length <= 1}
             title="Предыдущий сохраненный чат"
             className="w-8 h-8 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] disabled:opacity-20 disabled:pointer-events-none flex items-center justify-center text-white transition-colors cursor-pointer shrink-0"
@@ -127,16 +168,8 @@ export const SavedChatsCarousel: React.FC<SavedChatsCarouselProps> = ({
             <ChevronLeft className="w-4 h-4" />
           </button>
 
-          {/* Chat Info Content (Click to activate) */}
-          <div
-            onClick={() => {
-              if (currentChat.id !== activeChatId) {
-                triggerHaptic('selection');
-                onSelectChat(currentChat.id);
-              }
-            }}
-            className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer select-none px-1"
-          >
+          {/* Chat Info Content */}
+          <div className="flex items-center gap-3 min-w-0 flex-1 select-none px-1">
             {/* Character Avatar */}
             <div className="relative shrink-0">
               <img
@@ -179,10 +212,27 @@ export const SavedChatsCarousel: React.FC<SavedChatsCarouselProps> = ({
             </div>
           </div>
 
+          {/* Open Chat Direct Action Button */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              triggerHaptic('selection');
+              onSelectChat(currentChat.id);
+            }}
+            className="min-h-[34px] px-3 rounded-xl bg-[#0095F6] hover:bg-[#0081D6] text-white text-xs font-bold inline-flex items-center gap-1 transition-colors cursor-pointer shrink-0 shadow-sm"
+          >
+            <span>В чат</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+
           {/* Right Arrow Button */}
           <button
             type="button"
-            onClick={handleNext}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleNext();
+            }}
             disabled={savedChats.length <= 1}
             title="Следующий сохраненный чат"
             className="w-8 h-8 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] disabled:opacity-20 disabled:pointer-events-none flex items-center justify-center text-white transition-colors cursor-pointer shrink-0"
@@ -194,13 +244,14 @@ export const SavedChatsCarousel: React.FC<SavedChatsCarouselProps> = ({
         {/* Card Quick Actions: Duplicate & Delete */}
         <div className="mt-2.5 pt-2 border-t border-white/[0.06] flex items-center justify-between text-xs">
           <div className="flex items-center gap-1 text-[11px] text-zinc-400">
-            <span>Переключение между диалогами</span>
+            <span>Нажмите на карточку, чтобы открыть переписку</span>
           </div>
 
           <div className="flex items-center gap-1">
             <button
               type="button"
-              onClick={() => {
+              onClick={(e) => {
+                e.stopPropagation();
                 triggerHaptic('light');
                 onDuplicateChat(currentChat.id);
               }}
@@ -214,7 +265,10 @@ export const SavedChatsCarousel: React.FC<SavedChatsCarouselProps> = ({
             {savedChats.length > 1 && (
               <button
                 type="button"
-                onClick={() => setChatToDelete(currentChat)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setChatToDelete(currentChat);
+                }}
                 title="Удалить этот сохраненный диалог"
                 className="p-1.5 rounded-lg bg-white/[0.04] hover:bg-red-500/20 text-zinc-400 hover:text-red-300 transition-colors cursor-pointer flex items-center gap-1 text-[11px]"
               >
