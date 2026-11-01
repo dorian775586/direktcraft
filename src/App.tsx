@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { toPng } from 'html-to-image';
 import { Character, ChatMessage, DeviceSettings, SavedChat } from './types/chat';
-import { CELEBRITY_CHARACTERS } from './data/characters';
+import { CELEBRITY_CHARACTERS, DEFAULT_CUSTOM_AVATAR } from './data/characters';
 import { initTelegramMiniApp, triggerHaptic, updateTelegramBackButton } from './utils/telegram';
 import { downloadImageFile } from './utils/download';
 import { CharacterRoster } from './components/CharacterRoster';
@@ -38,17 +38,18 @@ async function ensureAllImagesInlinedAsDataUris(container: HTMLElement): Promise
     images.map(async (img) => {
       if (!img.src || img.src.startsWith('data:')) return;
       try {
-        const res = await fetch(img.src);
+        const res = await fetch(img.src, { mode: 'cors' });
         const blob = await res.blob();
         const reader = new FileReader();
         img.src = await new Promise<string>((resolve) => {
           reader.onloadend = () =>
             resolve(typeof reader.result === 'string' ? reader.result : img.src);
-          reader.onerror = () => resolve(img.src);
+          reader.onerror = () => resolve(DEFAULT_CUSTOM_AVATAR);
           reader.readAsDataURL(blob);
         });
       } catch (e) {
-        console.warn('Image inlining skipped:', e);
+        console.warn('Image inlining fallback to default avatar:', e);
+        img.src = DEFAULT_CUSTOM_AVATAR;
       }
     })
   );
@@ -452,11 +453,37 @@ export default function App() {
     setSelectedMessageId(null);
     triggerHaptic('medium');
 
+    const feedContainer = captureRef.current.querySelector(
+      '[data-chat-feed="true"]'
+    ) as HTMLElement | null;
+    const feedInner =
+      (feedContainer?.querySelector('[data-chat-feed-inner="true"]') as HTMLElement | null) ||
+      (feedContainer?.firstElementChild as HTMLElement | null);
+
+    let savedScrollTop = 0;
+    let appliedTransform = false;
+
     try {
       // 1. Ensure all images (header avatar, DM incoming avatars) are inlined as base64 data URIs
       await ensureAllImagesInlinedAsDataUris(captureRef.current);
 
-      // 2. Wait two frames so any selection highlight disappears and inlined images paint before DOM capture
+      // 2. SVG foreignObject in html-to-image always renders with scrollTop=0.
+      // Compensate by translating feedInner upward by the current/effective scroll offset:
+      if (feedContainer && feedInner) {
+        savedScrollTop = feedContainer.scrollTop;
+        const maxScroll = Math.max(0, feedContainer.scrollHeight - feedContainer.clientHeight);
+
+        // If user is at the bottom or dialogue overflows, ensure messages are visible in the snapshot
+        const targetScroll = savedScrollTop > 0 ? savedScrollTop : maxScroll;
+
+        if (targetScroll > 0) {
+          feedInner.style.transform = `translateY(-${targetScroll}px)`;
+          feedContainer.scrollTop = 0;
+          appliedTransform = true;
+        }
+      }
+
+      // 3. Wait two frames so any selection highlight disappears and transform paints before DOM capture
       await new Promise<void>((resolve) =>
         requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
       );
@@ -465,29 +492,49 @@ export default function App() {
         isProUnlocked ? '' : '-demo'
       }.png`;
 
-      // 3. pixelRatio 2 gives crisp Retina resolution without crashing mobile canvas memory
+      // 4. Explicit pixel dimensions prevent SVG foreignObject flex layout collapse
+      const nodeWidth = captureRef.current.offsetWidth || 393;
+      const nodeHeight = captureRef.current.offsetHeight || Math.round((nodeWidth * 16) / 9);
+
+      // pixelRatio 2 gives crisp Retina resolution
       // skipFonts true prevents failed fetches on external Google Fonts
       // cacheBust false prevents query param appending to data URIs
       const dataUrl = await toPng(captureRef.current, {
+        width: nodeWidth,
+        height: nodeHeight,
+        canvasWidth: nodeWidth * 2,
+        canvasHeight: nodeHeight * 2,
         pixelRatio: 2,
         skipFonts: true,
         cacheBust: false,
         backgroundColor: '#000000',
+        style: {
+          width: `${nodeWidth}px`,
+          height: `${nodeHeight}px`,
+          maxHeight: `${nodeHeight}px`,
+          aspectRatio: 'unset',
+        },
       });
 
       setCapturedPngUrl(dataUrl);
 
-      // 4. Trigger automatic reliable Blob download
+      // 5. Trigger automatic reliable Blob download
       downloadImageFile(dataUrl, filename);
 
       triggerHaptic('success');
-      showToast('Скриншот сформирован');
+      showToast('Скриншот готов!');
     } catch (err) {
       console.warn('Primary PNG export failed, trying fallback:', err);
       try {
         if (captureRef.current) {
           await ensureAllImagesInlinedAsDataUris(captureRef.current);
+          const nodeWidth = captureRef.current.offsetWidth || 393;
+          const nodeHeight = captureRef.current.offsetHeight || Math.round((nodeWidth * 16) / 9);
           const fallbackDataUrl = await toPng(captureRef.current, {
+            width: nodeWidth,
+            height: nodeHeight,
+            canvasWidth: nodeWidth,
+            canvasHeight: nodeHeight,
             pixelRatio: 1.5,
             skipFonts: true,
             cacheBust: false,
@@ -499,7 +546,7 @@ export default function App() {
           }.png`;
           downloadImageFile(fallbackDataUrl, filename);
           triggerHaptic('success');
-          showToast('Скриншот сформирован');
+          showToast('Скриншот готов!');
           return;
         }
       } catch (fallbackErr) {
@@ -507,6 +554,11 @@ export default function App() {
       }
       showToast('Не удалось сформировать PNG. Попробуйте еще раз.');
     } finally {
+      // 6. ALWAYS restore feed container scroll position and remove transform
+      if (appliedTransform && feedInner && feedContainer) {
+        feedInner.style.transform = '';
+        feedContainer.scrollTop = savedScrollTop;
+      }
       setIsExporting(false);
     }
   };
@@ -516,12 +568,12 @@ export default function App() {
   }.png`;
 
   return (
-    <div className="min-h-dvh bg-[#09090B] text-zinc-100 flex flex-col">
+    <div className="min-h-dvh bg-[#09090B] text-zinc-100 flex flex-col w-full max-w-full overflow-x-hidden">
       {/* Desktop Top Bar (3-zone contract, hidden on narrow mobile TMA chat view for max screen space) */}
       <header
         className={`${
           mobileScreen === 'chat' ? 'hidden lg:flex' : 'flex'
-        } items-center justify-between gap-8 px-4 sm:px-6 py-3.5 border-b border-white/[0.07] bg-[#09090B]/90 backdrop-blur-md sticky top-0 z-30`}
+        } items-center justify-between gap-4 px-4 sm:px-6 py-3.5 border-b border-white/[0.07] bg-[#09090B]/90 backdrop-blur-md sticky top-0 z-30 w-full max-w-full overflow-x-hidden`}
       >
         {/* Zone 1: Brand Title */}
         <a
@@ -594,9 +646,9 @@ export default function App() {
         </div>
       </header>
 
-      {/* Mobile Sticky Bar when in Chat Mode */}
+      {/* Mobile Sticky Bar when in Chat Mode - Perfectly fits 320px+ without any horizontal scrolling */}
       {mobileScreen === 'chat' && (
-        <div className="lg:hidden flex items-center justify-between gap-1.5 px-3 py-2 bg-[#09090B]/95 backdrop-blur-md border-b border-white/10 sticky top-0 z-30">
+        <div className="lg:hidden flex items-center justify-between gap-1.5 px-2.5 py-2 bg-[#09090B]/95 backdrop-blur-md border-b border-white/10 sticky top-0 z-30 w-full max-w-full overflow-x-hidden">
           <button
             type="button"
             onClick={() => {
@@ -604,14 +656,14 @@ export default function App() {
               setMobileScreen('roster');
               setDesktopTab('roster');
             }}
-            className="min-h-[38px] px-2.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/10 text-xs font-semibold text-white inline-flex items-center gap-1 cursor-pointer shrink-0 transition-colors"
+            className="min-h-[36px] px-2.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/10 text-xs font-semibold text-white inline-flex items-center gap-1 cursor-pointer shrink-0 transition-colors"
             title="Вернуться к списку персонажей"
           >
             <ArrowLeft className="w-4 h-4 text-[#0095F6]" />
-            <span className="hidden sm:inline">Назад</span>
+            <span className="hidden xs:inline sm:inline">Назад</span>
           </button>
 
-          {/* Quick OS Switcher on mobile (kept in chat view) */}
+          {/* Quick OS Switcher on mobile (iOS vs Android) */}
           <div className="inline-flex items-center rounded-xl bg-[#141418] border border-white/15 p-0.5 shadow-xs shrink-0">
             <button
               type="button"
@@ -643,12 +695,13 @@ export default function App() {
             </button>
           </div>
 
-          <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex items-center gap-1 shrink-0">
             <button
               type="button"
               disabled={isExporting}
               onClick={handleExportScreenshot}
-              className="min-h-[38px] px-3 rounded-xl bg-white hover:bg-zinc-200 text-zinc-950 text-xs font-bold transition-colors cursor-pointer shrink-0 shadow-xs flex items-center gap-1"
+              title="Скачать скриншот"
+              className="min-h-[36px] px-2.5 rounded-xl bg-white hover:bg-zinc-200 text-zinc-950 text-xs font-bold transition-colors cursor-pointer shrink-0 shadow-xs flex items-center gap-1"
             >
               <Download className="w-3.5 h-3.5" />
               <span>{isExporting ? '...' : 'Скачать'}</span>
@@ -660,21 +713,22 @@ export default function App() {
                 triggerHaptic('medium');
                 setIsStarsModalOpen(true);
               }}
-              className={`min-h-[38px] px-3 rounded-xl text-xs font-bold transition-colors cursor-pointer shrink-0 shadow-xs flex items-center gap-1 ${
+              title={isProUnlocked ? 'Водяные знаки убраны' : 'Убрать водяные знаки'}
+              className={`min-h-[36px] px-2.5 rounded-xl text-xs font-bold transition-colors cursor-pointer shrink-0 shadow-xs flex items-center gap-1 ${
                 isProUnlocked
                   ? 'bg-emerald-500 hover:bg-emerald-400 text-black'
                   : 'bg-white hover:bg-zinc-200 text-zinc-950'
               }`}
             >
               <Sparkles className="w-3.5 h-3.5" />
-              <span>{isProUnlocked ? 'Знаки убраны' : 'Убрать водяные знаки'}</span>
+              <span className="hidden sm:inline">{isProUnlocked ? 'PRO' : 'Знаки'}</span>
             </button>
           </div>
         </div>
       )}
 
       {/* Main Responsive Workspace */}
-      <main className="flex-1 w-full max-w-6xl mx-auto px-0 sm:px-6 py-0 sm:py-6 lg:py-8">
+      <main className="flex-1 w-full max-w-6xl mx-auto px-0 sm:px-6 py-0 sm:py-6 lg:py-8 overflow-x-hidden">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
           {/* LEFT COLUMN (Desktop Studio Controls + Mobile Roster Screen) */}
           <section
@@ -755,10 +809,6 @@ export default function App() {
                 activeCharacterId={activeCharacter.id}
                 activeCharacterName={activeCharacter.name}
                 osType={settings.osType}
-                onToggleOsType={(os) => {
-                  triggerHaptic('selection');
-                  setSettings((prev) => ({ ...prev, osType: os }));
-                }}
                 onSelectCharacter={handleSelectCharacter}
                 onOpenCustomModal={() => setIsCustomModalOpen(true)}
                 onOpenChat={() => {

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Download, X, Share2, Copy, Check, ArrowLeft } from 'lucide-react';
+import { Download, X, Share2, Copy, Check, ArrowLeft, ExternalLink } from 'lucide-react';
 import { TelegramStarIcon } from './StarsPaymentModal';
 import { downloadImageFile, shareOrSaveImage, copyImageToClipboard, createBlobUrlFromDataUrl } from '../utils/download';
+import { triggerHaptic } from '../utils/telegram';
 
 interface ScreenshotResultModalProps {
   imageDataUrl: string | null;
@@ -37,22 +38,33 @@ export const ScreenshotResultModal: React.FC<ScreenshotResultModalProps> = ({
 
   if (!imageDataUrl) return null;
 
-  const handleDownload = async (e?: React.MouseEvent) => {
-    if (e) {
-      e.preventDefault();
-    }
-    await shareOrSaveImage(imageDataUrl, filename);
+  const handleDownloadClick = () => {
+    // Do NOT preventDefault! Let the native <a download> click trigger naturally.
+    triggerHaptic('success');
+    // Also trigger programmatic downloadImageFile fallback
+    downloadImageFile(imageDataUrl, filename);
   };
 
   const handleShare = async () => {
+    triggerHaptic('medium');
     await shareOrSaveImage(imageDataUrl, filename);
   };
 
   const handleCopy = async () => {
+    triggerHaptic('light');
     const success = await copyImageToClipboard(imageDataUrl);
     if (success) {
+      triggerHaptic('success');
       setIsCopied(true);
       setTimeout(() => setIsCopied(false), 2200);
+    }
+  };
+
+  const handleOpenOriginal = () => {
+    triggerHaptic('light');
+    const targetUrl = blobUrl || imageDataUrl;
+    if (targetUrl) {
+      window.open(targetUrl, '_blank');
     }
   };
 
@@ -137,7 +149,7 @@ export const ScreenshotResultModal: React.FC<ScreenshotResultModalProps> = ({
             <a
               href={blobUrl || imageDataUrl}
               download={filename}
-              onClick={handleDownload}
+              onClick={handleDownloadClick}
               className="min-h-[44px] px-3 rounded-xl bg-[#0095F6] hover:bg-[#0081D6] text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer text-center no-underline shadow-md"
             >
               <Download className="w-4 h-4 shrink-0" />
@@ -145,24 +157,37 @@ export const ScreenshotResultModal: React.FC<ScreenshotResultModalProps> = ({
             </a>
           </div>
 
-          {/* Copy Button */}
-          <button
-            type="button"
-            onClick={handleCopy}
-            className="w-full min-h-[38px] px-3 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-zinc-300 text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-          >
-            {isCopied ? (
-              <>
-                <Check className="w-4 h-4 text-emerald-400" />
-                <span className="text-emerald-300 font-semibold">Скопировано в буфер обмена!</span>
-              </>
-            ) : (
-              <>
-                <Copy className="w-3.5 h-3.5" />
-                <span>Скопировать в буфер обмена</span>
-              </>
-            )}
-          </button>
+          <div className="grid grid-cols-2 gap-2">
+            {/* Copy Button */}
+            <button
+              type="button"
+              onClick={handleCopy}
+              className="min-h-[38px] px-3 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-zinc-300 text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+            >
+              {isCopied ? (
+                <>
+                  <Check className="w-4 h-4 text-emerald-400" />
+                  <span className="text-emerald-300 font-semibold truncate">Скопировано!</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">В буфер</span>
+                </>
+              )}
+            </button>
+
+            {/* Open Original in New Tab */}
+            <button
+              type="button"
+              onClick={handleOpenOriginal}
+              className="min-h-[38px] px-3 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-zinc-300 text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              title="Открыть картинку в новой вкладке"
+            >
+              <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">Открыть фото</span>
+            </button>
+          </div>
 
           {!isProUnlocked && (
             <button

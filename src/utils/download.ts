@@ -26,11 +26,27 @@ export function downloadImageFile(dataUrl: string, filename: string): boolean {
     const blob = dataUrlToBlob(dataUrl);
     const blobUrl = URL.createObjectURL(blob);
 
+    // 1. In Telegram WebApp environment, attempt native downloadFile if client supports it
+    if (typeof window !== 'undefined' && window.Telegram?.WebApp?.downloadFile) {
+      try {
+        window.Telegram.WebApp.downloadFile(
+          { url: blobUrl, file_name: filename },
+          (success: boolean) => {
+            if (success) {
+              console.log('Telegram native download initiated');
+            }
+          }
+        );
+      } catch (tgErr) {
+        console.warn('Telegram downloadFile call error:', tgErr);
+      }
+    }
+
+    // 2. Standard DOM anchor download
     const link = document.createElement('a');
     link.href = blobUrl;
     link.download = filename;
     link.setAttribute('download', filename);
-    link.target = '_self';
     link.rel = 'noopener noreferrer';
     link.style.display = 'none';
     document.body.appendChild(link);
@@ -40,8 +56,8 @@ export function downloadImageFile(dataUrl: string, filename: string): boolean {
       if (document.body.contains(link)) {
         document.body.removeChild(link);
       }
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
-    }, 1000);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 15000);
+    }, 1200);
     return true;
   } catch (err) {
     console.warn('Blob URL download failed, trying data-uri fallback:', err);

@@ -115,14 +115,14 @@ export const InstagramChatCanvas = forwardRef<HTMLDivElement, InstagramChatCanva
           ref={feedContainerRef}
           data-chat-feed="true"
           onScroll={handleScroll}
-          className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3.5 pt-2 pb-2 relative z-10 no-scrollbar touch-pan-y"
+          className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain px-3.5 pt-2 pb-2 relative z-10 no-scrollbar touch-pan-y"
           style={{
             WebkitOverflowScrolling: 'touch',
             scrollbarWidth: 'none',
             msOverflowStyle: 'none',
           }}
         >
-          <div className="min-h-full flex flex-col">
+          <div data-chat-feed-inner="true" className="min-h-full flex flex-col">
             {/* Authentic Instagram Profile Header at start of chat */}
             {settings.showProfileIntro && (
               <div className="flex flex-col items-center text-center pt-1 pb-3 mb-2 shrink-0 select-none">

@@ -9,6 +9,7 @@ export interface TelegramWebApp {
   setHeaderColor?: (color: string) => void;
   setBackgroundColor?: (color: string) => void;
   openInvoice?: (url: string, callback?: (status: 'paid' | 'cancelled' | 'failed' | 'pending') => void) => void;
+  downloadFile?: (params: { url: string; file_name: string }, callback?: (status: boolean) => void) => void;
   HapticFeedback?: {
     impactOccurred: (style: 'light' | 'medium' | 'heavy' | 'rigid' | 'soft') => void;
     notificationOccurred: (type: 'error' | 'success' | 'warning') => void;

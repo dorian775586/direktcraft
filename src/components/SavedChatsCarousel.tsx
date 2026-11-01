@@ -41,8 +41,6 @@ export const SavedChatsCarousel: React.FC<SavedChatsCarouselProps> = ({
   onDuplicateChat,
   onOpenStarsModal,
 }) => {
-  const [touchStartX, setTouchStartX] = useState<number | null>(null);
-  const [touchEndX, setTouchEndX] = useState<number | null>(null);
   const [isLimitModalOpen, setIsLimitModalOpen] = useState(false);
   const [chatToDelete, setChatToDelete] = useState<SavedChat | null>(null);
 
@@ -63,30 +61,6 @@ export const SavedChatsCarousel: React.FC<SavedChatsCarouselProps> = ({
     triggerHaptic('selection');
     const nextIdx = (currentIndex + 1) % savedChats.length;
     onSelectChat(savedChats[nextIdx].id);
-  };
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStartX(e.targetTouches[0].clientX);
-    setTouchEndX(null);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    setTouchEndX(e.targetTouches[0].clientX);
-  };
-
-  const handleTouchEnd = () => {
-    if (!touchStartX || !touchEndX) return;
-    const distance = touchStartX - touchEndX;
-    const minSwipeDistance = 45;
-    if (distance > minSwipeDistance) {
-      // Swiped Left -> go to Next
-      handleNext();
-    } else if (distance < -minSwipeDistance) {
-      // Swiped Right -> go to Prev
-      handlePrev();
-    }
-    setTouchStartX(null);
-    setTouchEndX(null);
   };
 
   const handleCreateClick = () => {
@@ -139,13 +113,8 @@ export const SavedChatsCarousel: React.FC<SavedChatsCarouselProps> = ({
         </button>
       </div>
 
-      {/* Swipeable Active Chat Card with Left / Right Navigation */}
-      <div
-        className="relative overflow-hidden rounded-2xl bg-gradient-to-b from-[#181822] to-[#14141B] border border-white/[0.08] p-3 touch-pan-y"
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-      >
+      {/* Active Chat Card with Left / Right Navigation */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-b from-[#181822] to-[#14141B] border border-white/[0.08] p-3">
         <div className="flex items-center justify-between gap-2">
           {/* Left Arrow Button */}
           <button
@@ -225,7 +194,7 @@ export const SavedChatsCarousel: React.FC<SavedChatsCarouselProps> = ({
         {/* Card Quick Actions: Duplicate & Delete */}
         <div className="mt-2.5 pt-2 border-t border-white/[0.06] flex items-center justify-between text-xs">
           <div className="flex items-center gap-1 text-[11px] text-zinc-400">
-            <span>Листайте стрелками или свайпом влево/вправо</span>
+            <span>Переключение между диалогами</span>
           </div>
 
           <div className="flex items-center gap-1">
