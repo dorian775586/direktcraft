@@ -2,16 +2,18 @@ import React, { useState } from 'react';
 import { Character, CharacterCategory } from '../types/chat';
 import { VerifiedBadge } from './InstagramHeader';
 import { DEFAULT_CUSTOM_AVATAR } from '../data/characters';
-import { Plus, Pencil } from 'lucide-react';
+import { Plus, Pencil, MessageSquare, ArrowRight } from 'lucide-react';
 
 interface CharacterRosterProps {
   characters: Character[];
   customCharacter: Character | null;
   activeCharacterId: string;
+  activeCharacterName?: string;
   osType?: 'ios' | 'android';
   onToggleOsType?: (os: 'ios' | 'android') => void;
   onSelectCharacter: (character: Character) => void;
   onOpenCustomModal: () => void;
+  onOpenChat?: () => void;
 }
 
 const FILTER_TABS: { id: 'ALL' | CharacterCategory; label: string }[] = [
@@ -54,10 +56,12 @@ export const CharacterRoster: React.FC<CharacterRosterProps> = ({
   characters,
   customCharacter,
   activeCharacterId,
+  activeCharacterName,
   osType = 'ios',
   onToggleOsType,
   onSelectCharacter,
   onOpenCustomModal,
+  onOpenChat,
 }) => {
   const [activeFilter, setActiveFilter] = useState<'ALL' | CharacterCategory>('ALL');
 
@@ -68,6 +72,26 @@ export const CharacterRoster: React.FC<CharacterRosterProps> = ({
 
   return (
     <div className="flex flex-col gap-4">
+      {/* Quick Return to Open Chat */}
+      {onOpenChat && (
+        <button
+          type="button"
+          onClick={onOpenChat}
+          className="w-full min-h-[44px] px-4 py-2.5 rounded-2xl bg-[#0095F6]/15 hover:bg-[#0095F6]/25 border border-[#0095F6]/50 text-white text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer shadow-md"
+        >
+          <div className="flex items-center gap-2 min-w-0">
+            <MessageSquare className="w-4 h-4 text-[#0095F6] shrink-0" />
+            <span className="truncate">
+              Вернуться в чат {activeCharacterName ? `(${activeCharacterName})` : ''}
+            </span>
+          </div>
+          <div className="flex items-center gap-1 text-[#0095F6] font-bold shrink-0 text-xs">
+            <span>В чат</span>
+            <ArrowRight className="w-4 h-4" />
+          </div>
+        </button>
+      )}
+
       {/* 🌟 1. FEATURED: «Свой персонаж ✨» at the VERY TOP */}
       <div
         className={`p-3.5 sm:p-4 rounded-3xl border transition-all shadow-lg ${

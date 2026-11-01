@@ -1,4 +1,4 @@
-import React, { forwardRef, useState } from 'react';
+import React, { forwardRef, useState, useRef, useEffect } from 'react';
 import { Character, ChatMessage, DeviceSettings } from '../types/chat';
 import { DeviceStatusBar } from './DeviceStatusBar';
 import { InstagramHeader, VerifiedBadge } from './InstagramHeader';
@@ -9,6 +9,7 @@ interface InstagramChatCanvasProps {
   messages: ChatMessage[];
   settings: DeviceSettings;
   isProUnlocked: boolean;
+  isExporting?: boolean;
   selectedMessageId: string | null;
   onSelectMessage: (id: string) => void;
   onToggleLikeMessage: (id: string) => void;
@@ -41,6 +42,7 @@ export const InstagramChatCanvas = forwardRef<HTMLDivElement, InstagramChatCanva
       messages,
       settings,
       isProUnlocked,
+      isExporting = false,
       selectedMessageId,
       onSelectMessage,
       onToggleLikeMessage,
@@ -53,6 +55,32 @@ export const InstagramChatCanvas = forwardRef<HTMLDivElement, InstagramChatCanva
     },
     ref
   ) => {
+    const feedContainerRef = useRef<HTMLDivElement>(null);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const [isScrolledUp, setIsScrolledUp] = useState(false);
+
+    // Auto-scroll to bottom on character change or when new messages arrive
+    useEffect(() => {
+      if (feedContainerRef.current) {
+        feedContainerRef.current.scrollTop = feedContainerRef.current.scrollHeight;
+      }
+    }, [character.id, messages.length]);
+
+    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+      const target = e.currentTarget;
+      const isUp = target.scrollHeight - target.scrollTop - target.clientHeight > 60;
+      setIsScrolledUp(isUp);
+    };
+
+    const scrollToBottom = () => {
+      if (feedContainerRef.current) {
+        feedContainerRef.current.scrollTo({
+          top: feedContainerRef.current.scrollHeight,
+          behavior: 'smooth',
+        });
+      }
+    };
+
     const lastMessage = messages[messages.length - 1];
     const showSeenBelowLast = settings.showSeenStatus && lastMessage?.sender === 'me';
 
@@ -82,41 +110,34 @@ export const InstagramChatCanvas = forwardRef<HTMLDivElement, InstagramChatCanva
           />
         </div>
 
-        {/* Middle Section: Authentic Instagram Direct Feed */}
-        <div className="flex-1 flex flex-col justify-end px-3.5 pt-2 pb-2 relative z-10 overflow-hidden">
-          {/* Authentic Instagram Profile Header at start of chat */}
-          {settings.showProfileIntro && (
-            <div className="flex flex-col items-center text-center pt-1 pb-3 mb-auto shrink-0 select-none">
-              {/* Profile Avatar with Story Ring */}
-              <div
-                onClick={onToggleStoryRing}
-                title={
-                  settings.storyRing === 'unseen'
-                    ? 'Новая история (градиент) — нажмите для смены'
-                    : settings.storyRing === 'seen'
-                    ? 'Просмотренная история (серая) — нажмите для смены'
-                    : 'Без истории — нажмите для добавления кружка'
-                }
-                className={`relative mb-2 cursor-pointer transition-transform active:scale-95 ${
-                  settings.storyRing === 'unseen'
-                    ? 'p-[3px] rounded-full bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888]'
-                    : settings.storyRing === 'seen'
-                    ? 'p-[3px] rounded-full bg-[#52525B]'
-                    : ''
-                }`}
-              >
-                <div className={settings.storyRing !== 'none' ? 'p-[2px] bg-black rounded-full' : ''}>
-                  <img
-                    src={character.avatar || DEFAULT_CUSTOM_AVATAR}
-                    alt={character.name}
-                    loading="eager"
-                    decoding="sync"
-                    onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).src = DEFAULT_CUSTOM_AVATAR;
-                    }}
-                    className="w-[74px] h-[74px] rounded-full object-cover object-top bg-[#262626] block"
-                  />
-                </div>
+        {/* Middle Section: Authentic Instagram Direct Feed (Листается вверх и вниз) */}
+        <div
+          ref={feedContainerRef}
+          data-chat-feed="true"
+          onScroll={handleScroll}
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3.5 pt-2 pb-2 relative z-10 no-scrollbar touch-pan-y"
+          style={{
+            WebkitOverflowScrolling: 'touch',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+          }}
+        >
+          <div className="min-h-full flex flex-col">
+            {/* Authentic Instagram Profile Header at start of chat */}
+            {settings.showProfileIntro && (
+              <div className="flex flex-col items-center text-center pt-1 pb-3 mb-2 shrink-0 select-none">
+              {/* Profile Avatar (Clean, no story ring - story ring is only on the small header avatar) */}
+              <div className="relative mb-2 shrink-0">
+                <img
+                  src={character.avatar || DEFAULT_CUSTOM_AVATAR}
+                  alt={character.name}
+                  loading="eager"
+                  decoding="sync"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = DEFAULT_CUSTOM_AVATAR;
+                  }}
+                  className="w-[84px] h-[84px] rounded-full object-cover object-top bg-[#262626] block"
+                />
               </div>
 
               {/* Name & Blue Checkmark */}
@@ -157,154 +178,183 @@ export const InstagramChatCanvas = forwardRef<HTMLDivElement, InstagramChatCanva
             </div>
           )}
 
-          {/* Timestamp Divider */}
-          {settings.dateDivider && (
-            <div className="text-center my-2.5">
-              <span className="text-[11px] font-medium text-[#8E8E8E] tracking-[0.01em]">
-                {settings.dateDivider}
-              </span>
-            </div>
-          )}
-
-          {/* Empty State Hint */}
-          {messages.length === 0 && (
-            <div className="my-12 text-center px-6">
-              <p className="text-[13px] text-[#737373]">
-                Диалог пуст. Добавьте реплики через панель конструктора ниже.
-              </p>
-            </div>
-          )}
-
-          {/* Messages List */}
-          <div className="flex flex-col gap-1.5">
-            {messages.map((msg, idx) => {
-              const prevMsg = messages[idx - 1];
-              const nextMsg = messages[idx + 1];
-              const isSamePrev = prevMsg?.sender === msg.sender;
-              const isSameNext = nextMsg?.sender === msg.sender;
-              const isSelected = selectedMessageId === msg.id;
-
-              if (msg.sender === 'system') {
-                return (
-                  <div
-                    key={msg.id}
-                    onClick={() => onSelectMessage(msg.id)}
-                    className={`mx-auto my-1.5 flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-[#1C1C1E] border transition-colors cursor-pointer ${
-                      isSelected ? 'border-[#3797F0]' : 'border-transparent'
-                    }`}
-                  >
-                    <div className="w-7 h-7 rounded-full bg-[#2C2C2E] flex items-center justify-center text-[#FF453A] shrink-0">
-                      {msg.callType === 'video' ? (
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-                          <rect x="2" y="5" width="14" height="14" rx="3" stroke="currentColor" strokeWidth="2" />
-                          <path d="M16 10L21 7V17L16 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                        </svg>
-                      ) : (
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                          <path
-                            d="M21 16.92v2.45a1.85 1.85 0 0 1-2.02 1.85 18.32 18.32 0 0 1-8-2.85 18.05 18.05 0 0 1-5.55-5.55 18.32 18.32 0 0 1-2.85-8.04A1.85 1.85 0 0 1 4.62 2.8h2.45a1.85 1.85 0 0 1 1.85 1.59c.12.89.34 1.76.65 2.6a1.85 1.85 0 0 1-.42 1.95L8.11 9.98a14.8 14.8 0 0 0 5.55 5.55l1.04-1.04a1.85 1.85 0 0 1 1.95-.42c.84.31 1.71.53 2.6.65A1.85 1.85 0 0 1 21 16.92Z"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                          />
-                        </svg>
-                      )}
-                    </div>
-                    <div className="text-left">
-                      <p className="text-[13px] font-medium text-white leading-tight">{msg.text}</p>
-                      <p className="text-[11px] text-[#8E8E8E] mt-0.5">Нажмите, чтобы перезвонить</p>
-                    </div>
-                  </div>
-                );
-              }
-
-              const isMe = msg.sender === 'me';
-
-              // Bubble corner radius matching iOS Instagram Direct grouping
-              const incomingRadius = `${isSamePrev ? 'rounded-tl-[6px]' : 'rounded-tl-[20px]'} ${
-                isSameNext ? 'rounded-bl-[6px]' : 'rounded-bl-[20px]'
-              } rounded-tr-[20px] rounded-br-[20px]`;
-
-              const outgoingRadius = `${isSamePrev ? 'rounded-tr-[6px]' : 'rounded-tr-[20px]'} ${
-                isSameNext ? 'rounded-br-[6px]' : 'rounded-br-[20px]'
-              } rounded-tl-[20px] rounded-bl-[20px]`;
-
-              return (
-                <div
-                  key={msg.id}
-                  className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} ${
-                    msg.liked ? 'mb-3.5' : ''
-                  }`}
-                >
-                  {msg.timestampLabel && (
-                    <div className="w-full text-center my-2">
-                      <span className="text-[11px] text-[#8E8E8E]">{msg.timestampLabel}</span>
-                    </div>
-                  )}
-
-                  <div className={`flex items-end gap-2 max-w-[82%] ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
-                    {/* Mini Avatar for Celebrity on the last consecutive incoming message */}
-                    {!isMe && (
-                      <div className="w-7 h-7 shrink-0">
-                        {!isSameNext && (
-                          <img
-                            src={character.avatar || DEFAULT_CUSTOM_AVATAR}
-                            alt={character.name}
-                            loading="eager"
-                            decoding="sync"
-                            onError={(e) => {
-                              (e.currentTarget as HTMLImageElement).src = DEFAULT_CUSTOM_AVATAR;
-                            }}
-                            className="w-7 h-7 rounded-full object-cover object-top bg-[#262626]"
-                          />
-                        )}
-                      </div>
-                    )}
-
-                    {/* Message Bubble */}
-                    <div
-                      onClick={() => onSelectMessage(msg.id)}
-                      onDoubleClick={() => onToggleLikeMessage(msg.id)}
-                      title="Нажмите для редактирования, двойной клик — лайк"
-                      style={isMe ? getOutgoingBubbleStyle(settings.bubbleTheme) : undefined}
-                      className={`relative px-3.5 py-2.5 text-[15px] leading-[20px] tracking-[-0.01em] break-words cursor-pointer transition-transform active:scale-[0.99] ${
-                        isMe
-                          ? `bg-[#0095F6] text-white ${outgoingRadius}`
-                          : `bg-[#262626] text-[#F5F5F5] ${incomingRadius}`
-                      } ${isSelected ? 'ring-2 ring-white/70' : ''}`}
-                    >
-                      <span>{msg.text}</span>
-
-                      {/* Instagram Direct Heart Reaction */}
-                      {msg.liked && (
-                        <span
-                          className={`absolute -bottom-3 ${
-                            isMe ? 'right-2.5' : 'left-2.5'
-                          } flex items-center justify-center w-6 h-5 rounded-full bg-[#262626] border-[2px] border-black text-[11px] leading-none shadow-sm`}
-                        >
-                          ❤️
-                        </span>
-                      )}
-                    </div>
-                  </div>
+            {/* Messages Block (mt-auto keeps messages at bottom when dialogue is short, and expands to scroll when long) */}
+            <div className="mt-auto flex flex-col">
+              {/* Timestamp Divider */}
+              {settings.dateDivider && (
+                <div className="text-center my-2.5">
+                  <span className="text-[11px] font-medium text-[#8E8E8E] tracking-[0.01em]">
+                    {settings.dateDivider}
+                  </span>
                 </div>
-              );
-            })}
-          </div>
+              )}
 
-          {/* "Просмотрено" below last outgoing message */}
-          {showSeenBelowLast && (
-            <div className="text-right pr-1.5 mt-1">
-              <span className="text-[11px] text-[#8E8E8E] font-normal">Просмотрено</span>
+              {/* Empty State Hint */}
+              {messages.length === 0 && (
+                <div className="my-12 text-center px-6">
+                  <p className="text-[13px] text-[#737373]">
+                    Диалог пуст. Добавьте реплики через панель конструктора ниже.
+                  </p>
+                </div>
+              )}
+
+              {/* Messages List */}
+              <div className="flex flex-col gap-1.5">
+                {messages.map((msg, idx) => {
+                  const prevMsg = messages[idx - 1];
+                  const nextMsg = messages[idx + 1];
+                  const isSamePrev = prevMsg?.sender === msg.sender;
+                  const isSameNext = nextMsg?.sender === msg.sender;
+                  const isSelected = selectedMessageId === msg.id;
+
+                  if (msg.sender === 'system') {
+                    return (
+                      <div
+                        key={msg.id}
+                        onClick={() => onSelectMessage(msg.id)}
+                        className={`mx-auto my-1.5 flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-[#1C1C1E] border transition-colors cursor-pointer ${
+                          isSelected ? 'border-[#3797F0]' : 'border-transparent'
+                        }`}
+                      >
+                        <div className="w-7 h-7 rounded-full bg-[#2C2C2E] flex items-center justify-center text-[#FF453A] shrink-0">
+                          {msg.callType === 'video' ? (
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                              <rect x="2" y="5" width="14" height="14" rx="3" stroke="currentColor" strokeWidth="2" />
+                              <path d="M16 10L21 7V17L16 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                            </svg>
+                          ) : (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                              <path
+                                d="M21 16.92v2.45a1.85 1.85 0 0 1-2.02 1.85 18.32 18.32 0 0 1-8-2.85 18.05 18.05 0 0 1-5.55-5.55 18.32 18.32 0 0 1-2.85-8.04A1.85 1.85 0 0 1 4.62 2.8h2.45a1.85 1.85 0 0 1 1.85 1.59c.12.89.34 1.76.65 2.6a1.85 1.85 0 0 1-.42 1.95L8.11 9.98a14.8 14.8 0 0 0 5.55 5.55l1.04-1.04a1.85 1.85 0 0 1 1.95-.42c.84.31 1.71.53 2.6.65A1.85 1.85 0 0 1 21 16.92Z"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                              />
+                            </svg>
+                          )}
+                        </div>
+                        <div className="text-left">
+                          <p className="text-[13px] font-medium text-white leading-tight">{msg.text}</p>
+                          <p className="text-[11px] text-[#8E8E8E] mt-0.5">Нажмите, чтобы перезвонить</p>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  const isMe = msg.sender === 'me';
+
+                  // Bubble corner radius matching iOS Instagram Direct grouping
+                  const incomingRadius = `${isSamePrev ? 'rounded-tl-[6px]' : 'rounded-tl-[20px]'} ${
+                    isSameNext ? 'rounded-bl-[6px]' : 'rounded-bl-[20px]'
+                  } rounded-tr-[20px] rounded-br-[20px]`;
+
+                  const outgoingRadius = `${isSamePrev ? 'rounded-tr-[6px]' : 'rounded-tr-[20px]'} ${
+                    isSameNext ? 'rounded-br-[6px]' : 'rounded-br-[20px]'
+                  } rounded-tl-[20px] rounded-bl-[20px]`;
+
+                  return (
+                    <div
+                      key={msg.id}
+                      className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} ${
+                        msg.liked ? 'mb-3.5' : ''
+                      }`}
+                    >
+                      {msg.timestampLabel && (
+                        <div className="w-full text-center my-2">
+                          <span className="text-[11px] text-[#8E8E8E]">{msg.timestampLabel}</span>
+                        </div>
+                      )}
+
+                      <div className={`flex items-end gap-2 max-w-[82%] ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
+                        {/* Mini Avatar for Celebrity on the last consecutive incoming message */}
+                        {!isMe && (
+                          <div className="w-7 h-7 shrink-0">
+                            {!isSameNext && (
+                              <img
+                                src={character.avatar || DEFAULT_CUSTOM_AVATAR}
+                                alt={character.name}
+                                loading="eager"
+                                decoding="sync"
+                                onError={(e) => {
+                                  (e.currentTarget as HTMLImageElement).src = DEFAULT_CUSTOM_AVATAR;
+                                }}
+                                className="w-7 h-7 rounded-full object-cover object-top bg-[#262626]"
+                              />
+                            )}
+                          </div>
+                        )}
+
+                        {/* Message Bubble */}
+                        <div
+                          onClick={() => onSelectMessage(msg.id)}
+                          onDoubleClick={() => onToggleLikeMessage(msg.id)}
+                          title="Нажмите для редактирования, двойной клик — лайк"
+                          style={isMe ? getOutgoingBubbleStyle(settings.bubbleTheme) : undefined}
+                          className={`relative px-3.5 py-2.5 text-[15px] leading-[20px] tracking-[-0.01em] break-words cursor-pointer transition-transform active:scale-[0.99] ${
+                            isMe
+                              ? `bg-[#0095F6] text-white ${outgoingRadius}`
+                              : `bg-[#262626] text-[#F5F5F5] ${incomingRadius}`
+                          } ${isSelected ? 'ring-2 ring-white/70' : ''}`}
+                        >
+                          <span>{msg.text}</span>
+
+                          {/* Instagram Direct Heart Reaction */}
+                          {msg.liked && (
+                            <span
+                              className={`absolute -bottom-3 ${
+                                isMe ? 'right-2.5' : 'left-2.5'
+                              } flex items-center justify-center w-6 h-5 rounded-full bg-[#262626] border-[2px] border-black text-[11px] leading-none shadow-sm`}
+                            >
+                              ❤️
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* "Просмотрено" below last outgoing message */}
+              {showSeenBelowLast && (
+                <div className="text-right pr-1.5 mt-1">
+                  <span className="text-[11px] text-[#8E8E8E] font-normal">Просмотрено</span>
+                </div>
+              )}
             </div>
-          )}
+
+            {/* Scroll bottom anchor */}
+            <div ref={messagesEndRef} className="h-0 w-full shrink-0" />
+          </div>
         </div>
+
+        {/* Instagram Authentic Floating "Scroll to Bottom" Button when user scrolls up */}
+        {isScrolledUp && !isExporting && (
+          <button
+            type="button"
+            onClick={scrollToBottom}
+            title="Прокрутить к последним сообщениям"
+            className="absolute right-3.5 bottom-16 z-20 w-8 h-8 rounded-full bg-[#262626]/90 backdrop-blur-md border border-white/10 shadow-lg flex items-center justify-center text-white hover:bg-[#333333] transition-all active:scale-95 cursor-pointer"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </button>
+        )}
 
         {/* Dense Anti-AI Security Watermark Grid Overlay when Free Mode */}
         {!isProUnlocked && (
           <div
-            onClick={onOpenStarsModal}
-            title="Нажмите, чтобы убрать водяные знаки за 39 Stars"
-            className="pointer-events-auto cursor-pointer absolute inset-0 z-20 flex items-center justify-center overflow-hidden select-none"
+            title="Водяные знаки DirectCraft. Нажмите «Убрать водяные знаки» для снятия"
+            className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center overflow-hidden select-none"
           >
             <div className="absolute w-[240%] h-[240%] -left-[70%] -top-[70%] -rotate-[25deg] flex flex-col justify-between pointer-events-none opacity-[0.28]">
               {Array.from({ length: 24 }).map((_, rowIdx) => (

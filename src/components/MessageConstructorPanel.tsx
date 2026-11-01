@@ -11,6 +11,8 @@ import {
   SlidersHorizontal,
   RotateCcw,
   Users,
+  ArrowLeft,
+  Sparkles,
 } from 'lucide-react';
 
 interface MessageConstructorPanelProps {
@@ -35,6 +37,7 @@ interface MessageConstructorPanelProps {
   onExportScreenshot: () => void;
   onOpenStarsModal: () => void;
   onOpenSettingsModal: () => void;
+  onBackToRoster?: () => void;
   onBackToRosterMobile?: () => void;
 }
 
@@ -60,6 +63,7 @@ export const MessageConstructorPanel: React.FC<MessageConstructorPanelProps> = (
   onExportScreenshot,
   onOpenStarsModal,
   onOpenSettingsModal,
+  onBackToRoster,
   onBackToRosterMobile,
 }) => {
   const [sender, setSender] = useState<'them' | 'me'>('them');
@@ -67,6 +71,8 @@ export const MessageConstructorPanel: React.FC<MessageConstructorPanelProps> = (
 
   const isLimitReached = messages.length >= maxMessages;
   const selectedMessage = messages.find((m) => m.id === selectedMessageId) || null;
+
+  const handleBack = onBackToRoster || onBackToRosterMobile;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,14 +87,15 @@ export const MessageConstructorPanel: React.FC<MessageConstructorPanelProps> = (
       {/* Top Row: Active Character Bar & Counter */}
       <div className="flex items-center justify-between gap-2 pb-3 border-b border-white/[0.06]">
         <div className="flex items-center gap-2.5 min-w-0">
-          {onBackToRosterMobile && (
+          {handleBack && (
             <button
               type="button"
-              onClick={onBackToRosterMobile}
-              className="lg:hidden min-h-[38px] px-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-xs font-medium text-zinc-200 inline-flex items-center gap-1.5 shrink-0 cursor-pointer"
+              onClick={handleBack}
+              className="min-h-[38px] px-3 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/10 text-xs font-semibold text-white inline-flex items-center gap-1.5 shrink-0 cursor-pointer transition-colors"
+              title="Вернуться к списку персонажей"
             >
-              <Users className="w-3.5 h-3.5" />
-              Персонажи
+              <ArrowLeft className="w-4 h-4 text-[#0095F6]" />
+              <span>Назад</span>
             </button>
           )}
           <div className="min-w-0">
@@ -313,7 +320,7 @@ export const MessageConstructorPanel: React.FC<MessageConstructorPanelProps> = (
           type="button"
           disabled={isExporting}
           onClick={onExportScreenshot}
-          className="min-h-[48px] flex-1 px-5 rounded-2xl bg-white hover:bg-zinc-200 disabled:opacity-60 text-zinc-950 font-bold text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer whitespace-nowrap"
+          className="min-h-[48px] flex-1 px-5 rounded-2xl bg-white hover:bg-zinc-200 disabled:opacity-60 text-zinc-950 font-bold text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer whitespace-nowrap shadow-xs"
         >
           <Download className="w-4 h-4 shrink-0" />
           <span>{isExporting ? 'Рендеринг PNG...' : 'Скачать скриншот'}</span>
@@ -322,18 +329,29 @@ export const MessageConstructorPanel: React.FC<MessageConstructorPanelProps> = (
         <button
           type="button"
           onClick={onOpenStarsModal}
-          className={`min-h-[48px] px-4 rounded-2xl border text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
+          className={`min-h-[48px] flex-1 px-5 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer whitespace-nowrap shadow-xs ${
             isProUnlocked
-              ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
-              : 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 border-amber-400/40 hover:border-amber-400/70 text-amber-200'
+              ? 'bg-emerald-500 hover:bg-emerald-400 text-black'
+              : 'bg-white hover:bg-zinc-200 text-zinc-950'
           }`}
         >
-          <TelegramStarIcon className="w-4 h-4" />
+          <Sparkles className="w-4 h-4 shrink-0" />
           <span>
-            {isProUnlocked ? 'Без водяного знака (PRO)' : 'Убрать водяной знак · 39 ★'}
+            {isProUnlocked ? 'Водяные знаки убраны' : 'Убрать водяные знаки'}
           </span>
         </button>
       </div>
+
+      {handleBack && (
+        <button
+          type="button"
+          onClick={handleBack}
+          className="w-full min-h-[42px] px-4 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-xs font-semibold text-zinc-300 hover:text-white flex items-center justify-center gap-2 transition-colors cursor-pointer"
+        >
+          <ArrowLeft className="w-4 h-4 text-[#0095F6]" />
+          <span>Вернуться к выбору персонажей</span>
+        </button>
+      )}
     </div>
   );
 };

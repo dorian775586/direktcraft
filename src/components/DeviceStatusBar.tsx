@@ -162,41 +162,53 @@ export const DeviceStatusBar: React.FC<DeviceStatusBarProps> = ({
           />
         </svg>
 
-        {/* iOS Battery Icon */}
+        {/* iOS Battery Icon (Authentic Apple iOS Status Bar) */}
         {showBatteryPercentage ? (
           <div
             className="relative flex items-center justify-center shrink-0 w-[27px] h-[13px]"
-            aria-label={`Заряд батареи ${clampedBattery}%`}
+            aria-label={`Заряд батареи ${clampedBattery}`}
           >
             <svg
               width="27"
               height="13"
               viewBox="0 0 27 13"
               fill="none"
-              className="shrink-0"
+              className="shrink-0 block"
             >
-              {/* Outer rounded pill body */}
+              {/* Outer rounded pill body (authentic 24.5px x 12px with 3.8px radius) */}
               <rect
-                x="0.75"
-                y="1"
-                width="22"
-                height="11"
-                rx="3.5"
+                x="0"
+                y="0.5"
+                width="24.5"
+                height="12"
+                rx="3.8"
                 fill={clampedBattery <= 20 ? '#FF453A' : '#FFFFFF'}
               />
-              {/* Cathode notch on right */}
+              {/* Cathode bump on right */}
               <path
-                d="M24.2 4.5C25.05 4.82 25.55 5.55 25.55 6.5C25.55 7.45 25.05 8.18 24.2 8.5V4.5Z"
+                d="M25.5 4.3C26.15 4.55 26.55 5.15 26.55 6.5C26.55 7.85 26.15 8.45 25.5 8.7V4.3Z"
                 fill="white"
-                fillOpacity="0.45"
+                fillOpacity="0.4"
               />
             </svg>
-            {/* Battery percentage number inside pill */}
+            {/* Battery digits: authentic SF Pro Text semibold, optical cap-height centering, exact scale */}
             <span
-              className={`absolute left-0 top-0 w-[23.5px] h-full flex items-center justify-center font-bold text-[9px] leading-none tabular-nums select-none ${
+              className={`absolute flex items-center justify-center leading-none tabular-nums select-none pointer-events-none ${
                 clampedBattery <= 20 ? 'text-white' : 'text-black'
               }`}
-              style={{ letterSpacing: '-0.04em' }}
+              style={{
+                left: '0px',
+                top: '0.5px',
+                width: '24.5px',
+                height: '12px',
+                fontFamily:
+                  '"SF Pro Text", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif',
+                fontWeight: 600,
+                fontSize: clampedBattery === 100 ? '9.5px' : '11.5px',
+                letterSpacing: clampedBattery === 100 ? '-0.55px' : '-0.45px',
+                transform: 'translateY(-0.35px)',
+                textAlign: 'center',
+              }}
             >
               {clampedBattery}
             </span>
@@ -207,31 +219,31 @@ export const DeviceStatusBar: React.FC<DeviceStatusBarProps> = ({
             height="13"
             viewBox="0 0 27 13"
             fill="none"
-            aria-label={`Заряд батареи ${clampedBattery}%`}
+            aria-label={`Заряд батареи ${clampedBattery}`}
             className="shrink-0"
           >
             <rect
-              x="0.75"
-              y="1"
-              width="22"
-              height="11"
-              rx="3.5"
+              x="0.5"
+              y="0.75"
+              width="23.5"
+              height="11.5"
+              rx="3.8"
               stroke="white"
-              strokeOpacity="0.4"
-              strokeWidth="1.15"
+              strokeOpacity="0.35"
+              strokeWidth="1.1"
             />
             <rect
-              x="2.5"
-              y="2.75"
-              width={fillWidth}
-              height="7.5"
+              x="2.2"
+              y="2.4"
+              width={Math.round((clampedBattery / 100) * 19.5)}
+              height="8.2"
               rx="1.8"
               fill={clampedBattery <= 20 ? '#FF453A' : 'white'}
             />
             <path
-              d="M24.2 4.5C25.05 4.82 25.55 5.55 25.55 6.5C25.55 7.45 25.05 8.18 24.2 8.5V4.5Z"
+              d="M25.5 4.3C26.15 4.55 26.55 5.15 26.55 6.5C26.55 7.85 26.15 8.45 25.5 8.7V4.3Z"
               fill="white"
-              fillOpacity="0.45"
+              fillOpacity="0.4"
             />
           </svg>
         )}

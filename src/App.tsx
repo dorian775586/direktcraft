@@ -1,19 +1,20 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { toPng } from 'html-to-image';
-import { Character, ChatMessage, DeviceSettings } from './types/chat';
+import { Character, ChatMessage, DeviceSettings, SavedChat } from './types/chat';
 import { CELEBRITY_CHARACTERS } from './data/characters';
-import { initTelegramMiniApp, triggerHaptic } from './utils/telegram';
+import { initTelegramMiniApp, triggerHaptic, updateTelegramBackButton } from './utils/telegram';
 import { downloadImageFile } from './utils/download';
 import { CharacterRoster } from './components/CharacterRoster';
 import { InstagramChatCanvas } from './components/InstagramChatCanvas';
 import { MessageConstructorPanel } from './components/MessageConstructorPanel';
+import { SavedChatsCarousel } from './components/SavedChatsCarousel';
 import { CustomCharacterModal } from './components/CustomCharacterModal';
 import { StarsPaymentModal, TelegramStarIcon } from './components/StarsPaymentModal';
 import { ScreenshotResultModal } from './components/ScreenshotResultModal';
 import { DeviceSettingsModal } from './components/DeviceSettingsModal';
-import { SlidersHorizontal, Users, Sparkles, MessageSquare, Smartphone, Download } from 'lucide-react';
+import { SlidersHorizontal, Users, Sparkles, MessageSquare, Smartphone, Download, ArrowLeft, ChevronUp, ChevronDown } from 'lucide-react';
 
-const MAX_MESSAGES = 8;
+const MAX_MESSAGES = 25;
 
 async function preloadImageAsDataUrl(src: string): Promise<string> {
   if (!src || src.startsWith('data:')) return src;
@@ -53,34 +54,71 @@ async function ensureAllImagesInlinedAsDataUris(container: HTMLElement): Promise
   );
 }
 
+const STORAGE_KEY = 'directcraft_saved_chats_v1';
+const FREE_SAVED_CHATS_LIMIT = 2;
+
+const DEFAULT_SETTINGS: DeviceSettings = {
+  osType: 'ios',
+  androidNavStyle: 'gesture',
+  time: '12:21',
+  batteryLevel: 97,
+  showOnlineDot: true,
+  showSeenStatus: true,
+  showProfileIntro: true,
+  showBatteryPercentage: true,
+  storyRing: 'unseen',
+  aspectRatio: '9:16',
+  dateDivider: 'Сегодня, 9:38',
+  bubbleTheme: 'solid_0095f6',
+};
+
+function getInitialSavedChats(): { chats: SavedChat[]; activeId: string } {
+  try {
+    const raw = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return { chats: parsed, activeId: parsed[0].id };
+      }
+    }
+  } catch (e) {
+    console.warn('Error reading saved chats from localStorage:', e);
+  }
+
+  const defaultChat: SavedChat = {
+    id: `chat_init_${Date.now()}`,
+    title: CELEBRITY_CHARACTERS[0].name,
+    character: CELEBRITY_CHARACTERS[0],
+    messages: CELEBRITY_CHARACTERS[0].starterMessages,
+    settings: DEFAULT_SETTINGS,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  };
+
+  return { chats: [defaultChat], activeId: defaultChat.id };
+}
+
 export default function App() {
   const captureRef = useRef<HTMLDivElement | null>(null);
+
+  // Saved chats state (Free limit: up to 2 saved chats)
+  const [initialData] = useState(getInitialSavedChats);
+  const [savedChats, setSavedChats] = useState<SavedChat[]>(initialData.chats);
+  const [activeChatId, setActiveChatId] = useState<string>(initialData.activeId);
 
   // Mobile view state ('roster' = start screen with characters, 'chat' = unified constructor + preview on same page)
   const [mobileScreen, setMobileScreen] = useState<'roster' | 'chat'>('roster');
   // Desktop left-column workspace tab
   const [desktopTab, setDesktopTab] = useState<'roster' | 'constructor'>('roster');
 
+  const initialChat = initialData.chats[0];
   const [characters, setCharacters] = useState<Character[]>(CELEBRITY_CHARACTERS);
   const [customCharacter, setCustomCharacter] = useState<Character | null>(null);
-  const [activeCharacter, setActiveCharacter] = useState<Character>(CELEBRITY_CHARACTERS[0]);
-  const [messages, setMessages] = useState<ChatMessage[]>(CELEBRITY_CHARACTERS[0].starterMessages);
+  const [activeCharacter, setActiveCharacter] = useState<Character>(initialChat.character || CELEBRITY_CHARACTERS[0]);
+  const [messages, setMessages] = useState<ChatMessage[]>(initialChat.messages || CELEBRITY_CHARACTERS[0].starterMessages);
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
 
-  const [settings, setSettings] = useState<DeviceSettings>({
-    osType: 'ios',
-    androidNavStyle: 'gesture',
-    time: '12:21',
-    batteryLevel: 97,
-    showOnlineDot: true,
-    showSeenStatus: true,
-    showProfileIntro: true,
-    showBatteryPercentage: true,
-    storyRing: 'unseen',
-    aspectRatio: '9:16',
-    dateDivider: 'Сегодня, 9:38',
-    bubbleTheme: 'solid_0095f6',
-  });
+  const [settings, setSettings] = useState<DeviceSettings>(initialChat.settings || DEFAULT_SETTINGS);
 
   // Monetization & Modals
   const [isProUnlocked, setIsProUnlocked] = useState(false);
@@ -135,6 +173,169 @@ export default function App() {
     };
   }, [isCustomModalOpen, isSettingsModalOpen, isStarsModalOpen, capturedPngUrl]);
 
+  // 3. Keep native Telegram WebApp BackButton in sync with active screen & modals
+  useEffect(() => {
+    if (isCustomModalOpen) {
+      updateTelegramBackButton(true, () => {
+        triggerHaptic('light');
+        setIsCustomModalOpen(false);
+      });
+    } else if (isSettingsModalOpen) {
+      updateTelegramBackButton(true, () => {
+        triggerHaptic('light');
+        setIsSettingsModalOpen(false);
+      });
+    } else if (isStarsModalOpen) {
+      updateTelegramBackButton(true, () => {
+        triggerHaptic('light');
+        setIsStarsModalOpen(false);
+      });
+    } else if (capturedPngUrl) {
+      updateTelegramBackButton(true, () => {
+        triggerHaptic('light');
+        setCapturedPngUrl(null);
+      });
+    } else if (mobileScreen === 'chat') {
+      updateTelegramBackButton(true, () => {
+        triggerHaptic('selection');
+        setMobileScreen('roster');
+        setDesktopTab('roster');
+      });
+    } else {
+      updateTelegramBackButton(false);
+    }
+  }, [
+    isCustomModalOpen,
+    isSettingsModalOpen,
+    isStarsModalOpen,
+    capturedPngUrl,
+    mobileScreen,
+  ]);
+
+  // 4. Automatically persist active chat updates to savedChats and localStorage
+  useEffect(() => {
+    setSavedChats((prev) => {
+      const idx = prev.findIndex((c) => c.id === activeChatId);
+      if (idx === -1) return prev;
+      const current = prev[idx];
+      const updated: SavedChat = {
+        ...current,
+        title: activeCharacter.name,
+        character: activeCharacter,
+        messages,
+        settings,
+        updatedAt: Date.now(),
+      };
+      const nextList = [...prev];
+      nextList[idx] = updated;
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(nextList));
+      } catch (err) {
+        console.warn('LocalStorage save failed:', err);
+      }
+      return nextList;
+    });
+  }, [activeCharacter, messages, settings, activeChatId]);
+
+  const handleSelectSavedChat = (chatId: string) => {
+    const target = savedChats.find((c) => c.id === chatId);
+    if (!target) return;
+    triggerHaptic('selection');
+    setActiveChatId(target.id);
+    setActiveCharacter(target.character);
+    setMessages(target.messages);
+    setSettings(target.settings);
+    setSelectedMessageId(null);
+    showToast(`Открыт: ${target.character.name}`);
+  };
+
+  const handleCreateNewSavedChat = () => {
+    if (!isProUnlocked && savedChats.length >= FREE_SAVED_CHATS_LIMIT) {
+      setMessages([]);
+      setSelectedMessageId(null);
+      showToast('Диалог очищен для новых сообщений');
+      return;
+    }
+
+    const usedCharIds = new Set(savedChats.map((c) => c.character.id));
+    const nextChar =
+      CELEBRITY_CHARACTERS.find((c) => !usedCharIds.has(c.id)) ||
+      CELEBRITY_CHARACTERS[savedChats.length % CELEBRITY_CHARACTERS.length];
+
+    const newChat: SavedChat = {
+      id: `chat_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      title: nextChar.name,
+      character: nextChar,
+      messages: nextChar.starterMessages,
+      settings: { ...settings },
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+
+    const nextList = [...savedChats, newChat];
+    setSavedChats(nextList);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(nextList));
+    } catch {}
+
+    setActiveChatId(newChat.id);
+    setActiveCharacter(newChat.character);
+    setMessages(newChat.messages);
+    setSettings(newChat.settings);
+    setSelectedMessageId(null);
+    showToast(`Создан слот ${nextList.length}/${isProUnlocked ? '∞' : FREE_SAVED_CHATS_LIMIT}: «${newChat.character.name}»`);
+  };
+
+  const handleDuplicateSavedChat = (chatId: string) => {
+    if (!isProUnlocked && savedChats.length >= FREE_SAVED_CHATS_LIMIT) {
+      triggerHaptic('warning');
+      setIsStarsModalOpen(true);
+      showToast(`Бесплатный лимит: ${FREE_SAVED_CHATS_LIMIT} диалога. Оплатите PRO для безлимита`);
+      return;
+    }
+    const target = savedChats.find((c) => c.id === chatId);
+    if (!target) return;
+
+    const copyChat: SavedChat = {
+      ...target,
+      id: `chat_copy_${Date.now()}`,
+      title: `${target.title} (Копия)`,
+      messages: target.messages.map((m) => ({ ...m, id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 5)}` })),
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+
+    const nextList = [...savedChats, copyChat];
+    setSavedChats(nextList);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(nextList));
+    } catch {}
+    setActiveChatId(copyChat.id);
+    showToast(`Создана копия диалога «${target.character.name}»`);
+  };
+
+  const handleDeleteSavedChat = (chatId: string) => {
+    if (savedChats.length <= 1) {
+      showToast('Должен остаться хотя бы один диалог');
+      return;
+    }
+    const nextList = savedChats.filter((c) => c.id !== chatId);
+    setSavedChats(nextList);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(nextList));
+    } catch {}
+
+    if (activeChatId === chatId) {
+      const nextActive = nextList[0];
+      setActiveChatId(nextActive.id);
+      setActiveCharacter(nextActive.character);
+      setMessages(nextActive.messages);
+      setSettings(nextActive.settings);
+      setSelectedMessageId(null);
+    }
+    showToast('Диалог удален');
+  };
+
   const handleSelectCharacter = (character: Character) => {
     triggerHaptic('selection');
     setActiveCharacter(character);
@@ -159,7 +360,7 @@ export default function App() {
   const handleAddMessage = (sender: 'them' | 'me', text: string) => {
     if (messages.length >= MAX_MESSAGES) {
       triggerHaptic('warning');
-      showToast(`Максимум ${MAX_MESSAGES} сообщений для одного экрана iPhone`);
+      showToast(`Лимит сообщений в диалоге (${MAX_MESSAGES}) достигнут`);
       return;
     }
     triggerHaptic('light');
@@ -169,6 +370,17 @@ export default function App() {
       text,
     };
     setMessages((prev) => [...prev, newMsg]);
+  };
+
+  const handleScrollChatFeed = (direction: 'top' | 'bottom') => {
+    triggerHaptic('light');
+    const feed = captureRef.current?.querySelector<HTMLDivElement>('[data-chat-feed="true"]');
+    if (feed) {
+      feed.scrollTo({
+        top: direction === 'top' ? 0 : feed.scrollHeight,
+        behavior: 'smooth',
+      });
+    }
   };
 
   const handleAddSystemCall = (callType: 'audio' | 'video') => {
@@ -362,46 +574,22 @@ export default function App() {
           </button>
         </nav>
 
-        {/* Zone 3: OS Switcher + Single Primary Action */}
+        {/* Zone 3: Header Actions (watermark & OS switcher moved into chat view) */}
         <div className="flex items-center gap-2 shrink-0">
-          <div className="inline-flex items-center rounded-xl bg-[#141418] border border-white/10 p-0.5">
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic('selection');
-                setSettings((s) => ({ ...s, osType: 'ios' }));
-              }}
-              className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
-                (settings.osType ?? 'ios') === 'ios'
-                  ? 'bg-[#0095F6] text-white shadow-xs'
-                  : 'text-zinc-400 hover:text-white'
-              }`}
-            >
-              🍏 iOS
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic('selection');
-                setSettings((s) => ({ ...s, osType: 'android' }));
-              }}
-              className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
-                settings.osType === 'android'
-                  ? 'bg-[#0095F6] text-white shadow-xs'
-                  : 'text-zinc-400 hover:text-white'
-              }`}
-            >
-              🤖 Android
-            </button>
-          </div>
-
           <button
             type="button"
-            onClick={() => setIsStarsModalOpen(true)}
-            className="min-h-[40px] px-3.5 py-2 rounded-xl bg-[#18181F] hover:bg-[#22222B] border border-white/10 text-xs font-semibold text-white inline-flex items-center gap-2 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            onClick={() => setIsCustomModalOpen(true)}
+            className="md:hidden min-h-[36px] px-3 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/10 text-xs font-semibold text-white transition-colors cursor-pointer"
           >
-            <TelegramStarIcon className="w-4 h-4" />
-            <span>{isProUnlocked ? 'PRO активен' : 'Убрать водяной знак · 39 ★'}</span>
+            Свой профиль
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsSettingsModalOpen(true)}
+            title="Настройки экрана"
+            className="min-h-[36px] w-[36px] rounded-xl bg-[#18181F] hover:bg-[#22222B] border border-white/10 flex items-center justify-center text-zinc-300 hover:text-white cursor-pointer"
+          >
+            <SlidersHorizontal className="w-4 h-4" />
           </button>
         </div>
       </header>
@@ -414,22 +602,24 @@ export default function App() {
             onClick={() => {
               triggerHaptic('selection');
               setMobileScreen('roster');
+              setDesktopTab('roster');
             }}
-            className="min-h-[38px] px-2.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.12] text-xs font-semibold text-white inline-flex items-center gap-1.5 cursor-pointer shrink-0"
+            className="min-h-[38px] px-2.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/10 text-xs font-semibold text-white inline-flex items-center gap-1 cursor-pointer shrink-0 transition-colors"
+            title="Вернуться к списку персонажей"
           >
-            <Users className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Персонажи</span>
+            <ArrowLeft className="w-4 h-4 text-[#0095F6]" />
+            <span className="hidden sm:inline">Назад</span>
           </button>
 
-          {/* Quick OS Switcher on mobile */}
-          <div className="inline-flex items-center rounded-xl bg-[#141418] border border-white/15 p-0.5 shadow-xs">
+          {/* Quick OS Switcher on mobile (kept in chat view) */}
+          <div className="inline-flex items-center rounded-xl bg-[#141418] border border-white/15 p-0.5 shadow-xs shrink-0">
             <button
               type="button"
               onClick={() => {
                 triggerHaptic('selection');
                 setSettings((s) => ({ ...s, osType: 'ios' }));
               }}
-              className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+              className={`px-2 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
                 (settings.osType ?? 'ios') === 'ios'
                   ? 'bg-[#0095F6] text-white shadow-xs'
                   : 'text-zinc-400 hover:text-white'
@@ -443,7 +633,7 @@ export default function App() {
                 triggerHaptic('selection');
                 setSettings((s) => ({ ...s, osType: 'android' }));
               }}
-              className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+              className={`px-2 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
                 settings.osType === 'android'
                   ? 'bg-[#0095F6] text-white shadow-xs'
                   : 'text-zinc-400 hover:text-white'
@@ -453,24 +643,33 @@ export default function App() {
             </button>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setIsSettingsModalOpen(true)}
-            title="Настройки экрана"
-            className="min-h-[38px] w-[38px] rounded-xl bg-[#18181F] hover:bg-[#22222B] border border-white/10 flex items-center justify-center text-zinc-300 hover:text-white cursor-pointer shrink-0"
-          >
-            <SlidersHorizontal className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              disabled={isExporting}
+              onClick={handleExportScreenshot}
+              className="min-h-[38px] px-3 rounded-xl bg-white hover:bg-zinc-200 text-zinc-950 text-xs font-bold transition-colors cursor-pointer shrink-0 shadow-xs flex items-center gap-1"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>{isExporting ? '...' : 'Скачать'}</span>
+            </button>
 
-          <button
-            type="button"
-            disabled={isExporting}
-            onClick={handleExportScreenshot}
-            className="min-h-[38px] px-3.5 rounded-xl bg-white hover:bg-zinc-200 text-zinc-950 text-xs font-bold transition-colors cursor-pointer shrink-0 shadow-xs flex items-center gap-1.5"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>{isExporting ? '...' : 'Скачать'}</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('medium');
+                setIsStarsModalOpen(true);
+              }}
+              className={`min-h-[38px] px-3 rounded-xl text-xs font-bold transition-colors cursor-pointer shrink-0 shadow-xs flex items-center gap-1 ${
+                isProUnlocked
+                  ? 'bg-emerald-500 hover:bg-emerald-400 text-black'
+                  : 'bg-white hover:bg-zinc-200 text-zinc-950'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>{isProUnlocked ? 'Знаки убраны' : 'Убрать водяные знаки'}</span>
+            </button>
+          </div>
         </div>
       )}
 
@@ -489,8 +688,7 @@ export default function App() {
                 Фейковый Instagram Direct (iOS / Android)
               </h1>
               <p className="text-sm text-zinc-400 mt-1.5 max-w-xl leading-relaxed">
-                Выберите селебрити из списка или создайте своего персонажа, соберите диалог до 8
-                реплик и скачайте реалистичный скриншот в стиле iOS или Android.
+                Выберите селебрити или создайте своего персонажа, настройте диалог и скачайте реалистичный скриншот. Чат можно листать вверх и вниз!
               </p>
             </div>
 
@@ -533,10 +731,29 @@ export default function App() {
 
             {/* Mobile always shows Roster here; Desktop switches between Roster & Constructor */}
             <div className={desktopTab === 'roster' ? 'block' : 'block lg:hidden'}>
+              {/* Mobile Saved Chats Carousel at top of roster */}
+              <div className="lg:hidden mb-4">
+                <SavedChatsCarousel
+                  savedChats={savedChats}
+                  activeChatId={activeChatId}
+                  isProUnlocked={isProUnlocked}
+                  maxFreeChats={FREE_SAVED_CHATS_LIMIT}
+                  onSelectChat={(id) => {
+                    handleSelectSavedChat(id);
+                    setMobileScreen('chat');
+                    setDesktopTab('constructor');
+                  }}
+                  onCreateNewChat={handleCreateNewSavedChat}
+                  onDeleteChat={handleDeleteSavedChat}
+                  onDuplicateChat={handleDuplicateSavedChat}
+                  onOpenStarsModal={() => setIsStarsModalOpen(true)}
+                />
+              </div>
               <CharacterRoster
                 characters={characters}
                 customCharacter={customCharacter}
                 activeCharacterId={activeCharacter.id}
+                activeCharacterName={activeCharacter.name}
                 osType={settings.osType}
                 onToggleOsType={(os) => {
                   triggerHaptic('selection');
@@ -544,6 +761,11 @@ export default function App() {
                 }}
                 onSelectCharacter={handleSelectCharacter}
                 onOpenCustomModal={() => setIsCustomModalOpen(true)}
+                onOpenChat={() => {
+                  triggerHaptic('selection');
+                  setMobileScreen('chat');
+                  setDesktopTab('constructor');
+                }}
               />
             </div>
 
@@ -581,6 +803,11 @@ export default function App() {
                 onExportScreenshot={handleExportScreenshot}
                 onOpenStarsModal={() => setIsStarsModalOpen(true)}
                 onOpenSettingsModal={() => setIsSettingsModalOpen(true)}
+                onBackToRoster={() => {
+                  triggerHaptic('selection');
+                  setDesktopTab('roster');
+                  setMobileScreen('roster');
+                }}
               />
             </div>
           </section>
@@ -591,8 +818,23 @@ export default function App() {
               mobileScreen === 'chat' ? 'flex' : 'hidden lg:flex'
             }`}
           >
-            {/* Prominent OS Switcher Banner directly above the phone frame */}
-            <div className="w-full max-w-[393px] mb-2 px-1 flex items-center justify-between gap-2">
+            {/* Saved Chats Carousel (browse, flip, duplicate & save up to 2 chats for free) */}
+            <div className="w-full max-w-[393px] mb-3 px-1">
+              <SavedChatsCarousel
+                savedChats={savedChats}
+                activeChatId={activeChatId}
+                isProUnlocked={isProUnlocked}
+                maxFreeChats={FREE_SAVED_CHATS_LIMIT}
+                onSelectChat={handleSelectSavedChat}
+                onCreateNewChat={handleCreateNewSavedChat}
+                onDeleteChat={handleDeleteSavedChat}
+                onDuplicateChat={handleDuplicateSavedChat}
+                onOpenStarsModal={() => setIsStarsModalOpen(true)}
+              />
+            </div>
+
+            {/* Prominent OS Switcher Banner & Chat Scroll Helper directly above the phone frame */}
+            <div className="w-full max-w-[393px] mb-2 px-1 flex flex-col gap-1.5">
               <div className="inline-flex items-center rounded-2xl bg-[#141418] border border-white/15 p-1 shadow-lg w-full justify-between">
                 <span className="text-xs font-semibold text-zinc-300 pl-2 select-none flex items-center gap-1.5">
                   <span>Экран:</span>
@@ -641,6 +883,33 @@ export default function App() {
                   <SlidersHorizontal className="w-4 h-4" />
                 </button>
               </div>
+
+              {/* Chat Scroll Quick Controls */}
+              <div className="flex items-center justify-between px-2.5 py-1 bg-[#141418]/70 border border-white/[0.07] rounded-xl text-xs text-zinc-400">
+                <span className="text-[11px] text-zinc-400 select-none flex items-center gap-1">
+                  <span className="text-zinc-500">↕</span> Прокрутка диалога
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => handleScrollChatFeed('top')}
+                    title="Листать вверх (к шапке профиля)"
+                    className="px-2 py-0.5 rounded-lg bg-white/5 hover:bg-white/10 hover:text-white text-[11px] font-medium transition-colors flex items-center gap-1 cursor-pointer"
+                  >
+                    <ChevronUp className="w-3 h-3 text-[#0095F6]" />
+                    <span>Вверх</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleScrollChatFeed('bottom')}
+                    title="Листать вниз (к последним сообщениям)"
+                    className="px-2 py-0.5 rounded-lg bg-white/5 hover:bg-white/10 hover:text-white text-[11px] font-medium transition-colors flex items-center gap-1 cursor-pointer"
+                  >
+                    <ChevronDown className="w-3 h-3 text-[#0095F6]" />
+                    <span>Вниз</span>
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* Phone Canvas Preview + Unified Message Constructor on the Same Page */}
@@ -655,6 +924,7 @@ export default function App() {
                     messages={messages}
                     settings={settings}
                     isProUnlocked={isProUnlocked}
+                    isExporting={isExporting}
                     selectedMessageId={selectedMessageId}
                     onSelectMessage={(id) =>
                       setSelectedMessageId((prev) => (prev === id ? null : id))
@@ -687,15 +957,33 @@ export default function App() {
 
               {/* Mobile Quick Action Buttons directly beneath phone */}
               <div className="w-full mt-3 flex flex-col gap-2 px-1 lg:hidden">
-                <button
-                  type="button"
-                  disabled={isExporting}
-                  onClick={handleExportScreenshot}
-                  className="w-full min-h-[48px] px-5 rounded-2xl bg-white hover:bg-zinc-200 text-zinc-950 font-bold text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-md"
-                >
-                  <Download className="w-4 h-4 shrink-0" />
-                  <span>{isExporting ? 'Рендеринг PNG...' : 'Скачать скриншот (PNG)'}</span>
-                </button>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    disabled={isExporting}
+                    onClick={handleExportScreenshot}
+                    className="min-h-[48px] px-3.5 rounded-2xl bg-white hover:bg-zinc-200 text-zinc-950 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-md"
+                  >
+                    <Download className="w-4 h-4 shrink-0" />
+                    <span>{isExporting ? 'Рендеринг...' : 'Скачать скриншот'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic('medium');
+                      setIsStarsModalOpen(true);
+                    }}
+                    className={`min-h-[48px] px-3.5 rounded-2xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-md ${
+                      isProUnlocked
+                        ? 'bg-emerald-500 hover:bg-emerald-400 text-black'
+                        : 'bg-white hover:bg-zinc-200 text-zinc-950'
+                    }`}
+                  >
+                    <Sparkles className="w-4 h-4 shrink-0" />
+                    <span>{isProUnlocked ? 'Знаки убраны' : 'Убрать водяные знаки'}</span>
+                  </button>
+                </div>
 
                 <div className="grid grid-cols-2 gap-2">
                   <button
@@ -703,11 +991,12 @@ export default function App() {
                     onClick={() => {
                       triggerHaptic('selection');
                       setMobileScreen('roster');
+                      setDesktopTab('roster');
                     }}
                     className="min-h-[42px] px-3 rounded-xl bg-[#181822] hover:bg-[#20202C] border border-white/10 text-xs font-semibold text-white flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                   >
-                    <Users className="w-3.5 h-3.5" />
-                    <span>Выбрать персонажа</span>
+                    <ArrowLeft className="w-4 h-4 text-[#0095F6]" />
+                    <span>Назад к персонажам</span>
                   </button>
                   <button
                     type="button"
@@ -764,7 +1053,11 @@ export default function App() {
                   onExportScreenshot={handleExportScreenshot}
                   onOpenStarsModal={() => setIsStarsModalOpen(true)}
                   onOpenSettingsModal={() => setIsSettingsModalOpen(true)}
-                  onBackToRosterMobile={() => setMobileScreen('roster')}
+                  onBackToRoster={() => {
+                    triggerHaptic('selection');
+                    setMobileScreen('roster');
+                    setDesktopTab('roster');
+                  }}
                 />
               </div>
             </div>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { DeviceSettings, Character } from '../types/chat';
-import { X } from 'lucide-react';
+import { X, ArrowLeft } from 'lucide-react';
 
 interface DeviceSettingsModalProps {
   isOpen: boolean;
@@ -34,9 +34,20 @@ export const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
       >
         {/* Header - Fixed & Touch-None */}
         <div className="flex items-center justify-between p-4 sm:p-5 border-b border-white/10 shrink-0 bg-[#141418] touch-none">
-          <div>
-            <h2 className="text-base font-bold text-white">Настройки экрана (iOS / Android)</h2>
-            <p className="text-xs text-zinc-400">Детализация статус-бара, навигации и чата</p>
+          <div className="flex items-center gap-3 min-w-0">
+            <button
+              type="button"
+              onClick={onClose}
+              className="min-h-[38px] px-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] flex items-center gap-1.5 text-xs font-semibold text-zinc-300 hover:text-white cursor-pointer transition-colors shrink-0"
+              title="Назад"
+            >
+              <ArrowLeft className="w-4 h-4 text-[#0095F6]" />
+              <span>Назад</span>
+            </button>
+            <div className="min-w-0">
+              <h2 className="text-base font-bold text-white truncate">Настройки экрана</h2>
+              <p className="text-xs text-zinc-400 truncate">Часы, батарея, Stories и навигация</p>
+            </div>
           </div>
           <button
             type="button"
@@ -337,11 +348,19 @@ export const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
         </div>
 
         {/* Footer - Fixed & Touch-None */}
-        <div className="p-4 sm:p-5 border-t border-white/10 shrink-0 bg-[#141418] touch-none">
+        <div className="p-4 sm:p-5 border-t border-white/10 shrink-0 bg-[#141418] flex items-center gap-2.5 touch-none">
           <button
             type="button"
             onClick={onClose}
-            className="w-full min-h-[46px] rounded-xl bg-[#0095F6] hover:bg-[#0081D6] text-sm font-bold text-white shadow-md transition-colors cursor-pointer"
+            className="min-h-[46px] px-4 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-sm font-semibold text-zinc-300 transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Назад</span>
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="min-h-[46px] flex-1 rounded-xl bg-[#0095F6] hover:bg-[#0081D6] text-sm font-bold text-white shadow-md transition-colors cursor-pointer"
           >
             Применить настройки
           </button>

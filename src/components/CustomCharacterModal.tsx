@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Character } from '../types/chat';
 import { DEFAULT_CUSTOM_AVATAR } from '../data/characters';
-import { Upload, X } from 'lucide-react';
+import { Upload, X, ArrowLeft } from 'lucide-react';
 import { VerifiedBadge } from './InstagramHeader';
 
 interface CustomCharacterModalProps {
@@ -94,11 +94,22 @@ export const CustomCharacterModal: React.FC<CustomCharacterModalProps> = ({
       >
         {/* Header - Fixed & Touch-None */}
         <div className="flex items-center justify-between p-4 sm:p-5 border-b border-white/10 shrink-0 bg-[#141418] touch-none">
-          <div>
-            <h2 className="text-base sm:text-lg font-bold text-white">Свой персонаж ✨</h2>
-            <p className="text-xs text-zinc-400 mt-0.5">
-              Загрузите фото и настройте шапку профиля Instagram
-            </p>
+          <div className="flex items-center gap-3 min-w-0">
+            <button
+              type="button"
+              onClick={onClose}
+              className="min-h-[38px] px-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] flex items-center gap-1.5 text-xs font-semibold text-zinc-300 hover:text-white cursor-pointer transition-colors shrink-0"
+              title="Назад"
+            >
+              <ArrowLeft className="w-4 h-4 text-[#0095F6]" />
+              <span>Назад</span>
+            </button>
+            <div className="min-w-0">
+              <h2 className="text-base sm:text-lg font-bold text-white truncate">Свой персонаж ✨</h2>
+              <p className="text-xs text-zinc-400 mt-0.5 truncate">
+                Загрузите фото и настройте профиль
+              </p>
+            </div>
           </div>
           <button
             type="button"
@@ -247,9 +258,10 @@ export const CustomCharacterModal: React.FC<CustomCharacterModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="min-h-[46px] px-4 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-sm font-medium text-zinc-300 transition-colors cursor-pointer"
+            className="min-h-[46px] px-4 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-sm font-semibold text-zinc-300 transition-colors cursor-pointer flex items-center justify-center gap-1.5"
           >
-            Отмена
+            <ArrowLeft className="w-4 h-4" />
+            <span>Назад</span>
           </button>
           <button
             type="submit"

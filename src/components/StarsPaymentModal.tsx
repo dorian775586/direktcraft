@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Check, ShieldCheck } from 'lucide-react';
+import { X, Check, ShieldCheck, ArrowLeft } from 'lucide-react';
 import { purchaseRemoveWatermarkWithStars } from '../utils/telegram';
 
 interface StarsPaymentModalProps {
@@ -69,8 +69,19 @@ export const StarsPaymentModal: React.FC<StarsPaymentModalProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between">
-          <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-400/30 flex items-center justify-center">
-            <TelegramStarIcon className="w-7 h-7" />
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="min-h-[38px] px-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] flex items-center gap-1.5 text-xs font-semibold text-zinc-300 hover:text-white cursor-pointer transition-colors shrink-0"
+              title="Назад"
+            >
+              <ArrowLeft className="w-4 h-4 text-amber-400" />
+              <span>Назад</span>
+            </button>
+            <div className="w-11 h-11 rounded-2xl bg-amber-500/15 border border-amber-400/30 flex items-center justify-center">
+              <TelegramStarIcon className="w-6 h-6" />
+            </div>
           </div>
           <button
             type="button"
@@ -116,6 +127,26 @@ export const StarsPaymentModal: React.FC<StarsPaymentModalProps> = ({
                   ? statusText || 'Загрузка счета Telegram...'
                   : 'Убрать водяной знак за 39 звезд'}
               </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                onUnlockSuccess();
+                onClose();
+              }}
+              className="w-full min-h-[40px] px-4 rounded-xl bg-white/[0.07] hover:bg-white/[0.12] border border-white/10 text-xs font-semibold text-zinc-200 hover:text-white transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+            >
+              <span>Убрать водяные знаки (демо/тест)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-full min-h-[42px] px-4 rounded-xl bg-white/[0.05] hover:bg-white/[0.09] text-xs font-semibold text-zinc-300 hover:text-white transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Вернуться назад к чату</span>
             </button>
 
             <div className="flex items-center justify-center gap-1.5 text-[11px] text-zinc-500">

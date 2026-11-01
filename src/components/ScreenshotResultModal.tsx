@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download, X, Share2, Copy, Check } from 'lucide-react';
+import { Download, X, Share2, Copy, Check, ArrowLeft } from 'lucide-react';
 import { TelegramStarIcon } from './StarsPaymentModal';
 import { downloadImageFile, shareOrSaveImage, copyImageToClipboard, createBlobUrlFromDataUrl } from '../utils/download';
 
@@ -69,11 +69,22 @@ export const ScreenshotResultModal: React.FC<ScreenshotResultModalProps> = ({
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-2.5 shrink-0">
-          <div>
-            <h2 className="text-base font-bold text-white">Скриншот готов</h2>
-            <p className="text-xs text-zinc-400">
-              Захвачен чистый экран переписки в Instagram Direct
-            </p>
+          <div className="flex items-center gap-3 min-w-0">
+            <button
+              type="button"
+              onClick={onClose}
+              className="min-h-[38px] px-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] flex items-center gap-1.5 text-xs font-semibold text-zinc-300 hover:text-white cursor-pointer transition-colors shrink-0"
+              title="Назад в редактор"
+            >
+              <ArrowLeft className="w-4 h-4 text-[#0095F6]" />
+              <span>Назад</span>
+            </button>
+            <div className="min-w-0">
+              <h2 className="text-base font-bold text-white truncate">Скриншот готов</h2>
+              <p className="text-xs text-zinc-400 truncate">
+                Instagram Direct в высоком качестве
+              </p>
+            </div>
           </div>
           <button
             type="button"
@@ -166,6 +177,15 @@ export const ScreenshotResultModal: React.FC<ScreenshotResultModalProps> = ({
               Убрать водяной знак за 39 звезд
             </button>
           )}
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full min-h-[42px] px-4 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-xs font-semibold text-zinc-300 hover:text-white flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Вернуться в редактор переписки</span>
+          </button>
         </div>
       </div>
     </div>

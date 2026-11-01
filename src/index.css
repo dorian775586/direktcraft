@@ -1,9 +1,42 @@
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Аутентичный системный шрифт Apple SF Pro Text для всех платформ */
+@font-face {
+  font-family: 'SF Pro Text';
+  src: url('https://cdn.jsdelivr.net/npm/sf-pro@1.0.4/font/woff2/sf-pro-text_semibold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'SF Pro Text';
+  src: url('https://cdn.jsdelivr.net/npm/sf-pro@1.0.4/font/woff2/sf-pro-text_regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'SF Pro Text';
+  src: url('https://cdn.jsdelivr.net/npm/sf-pro@1.0.4/font/woff2/sf-pro-text_medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'SF Pro Text';
+  src: url('https://cdn.jsdelivr.net/npm/sf-pro@1.0.4/font/woff2/sf-pro-text_bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 @layer base {
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, Roboto, sans-serif;
+    font-family: "SF Pro Text", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
     background-color: #09090B;
     color: #FAFAFA;
     -webkit-font-smoothing: antialiased;
@@ -21,7 +54,7 @@
 
 /* Системный стек шрифтов iOS для реалистичного интерфейса Instagram */
 .ios-font {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, Roboto, sans-serif;
+  font-family: "SF Pro Text", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

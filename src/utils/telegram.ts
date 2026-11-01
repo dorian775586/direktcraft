@@ -14,6 +14,13 @@ export interface TelegramWebApp {
     notificationOccurred: (type: 'error' | 'success' | 'warning') => void;
     selectionChanged: () => void;
   };
+  BackButton?: {
+    isVisible: boolean;
+    show: () => void;
+    hide: () => void;
+    onClick: (callback: () => void) => void;
+    offClick: (callback: () => void) => void;
+  };
   initDataUnsafe?: {
     user?: {
       id: number;
@@ -37,6 +44,30 @@ export function getTelegramWebApp(): TelegramWebApp | undefined {
     return window.Telegram.WebApp;
   }
   return undefined;
+}
+
+let currentBackButtonCallback: (() => void) | null = null;
+
+export function updateTelegramBackButton(show: boolean, onClick?: () => void) {
+  const backButton = getTelegramWebApp()?.BackButton;
+  if (!backButton) return;
+
+  try {
+    if (currentBackButtonCallback) {
+      backButton.offClick(currentBackButtonCallback);
+      currentBackButtonCallback = null;
+    }
+
+    if (show && onClick) {
+      currentBackButtonCallback = onClick;
+      backButton.onClick(onClick);
+      backButton.show();
+    } else {
+      backButton.hide();
+    }
+  } catch {
+    // Graceful fallback if method is unsupported in older client
+  }
 }
 
 export function initTelegramMiniApp(): { isTelegram: boolean; username?: string } {

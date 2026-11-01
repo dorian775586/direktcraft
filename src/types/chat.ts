@@ -55,4 +55,14 @@ export interface DeviceSettings {
   bubbleTheme: BubbleTheme;
 }
 
+export interface SavedChat {
+  id: string;
+  title: string;
+  character: Character;
+  messages: ChatMessage[];
+  settings: DeviceSettings;
+  createdAt: number;
+  updatedAt: number;
+}
+
 
