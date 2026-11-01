@@ -110,21 +110,32 @@ export const InstagramChatCanvas = forwardRef<HTMLDivElement, InstagramChatCanva
           />
         </div>
 
-        {/* Middle Section: Authentic Instagram Direct Feed (Листается вверх и вниз) */}
+        {/* Middle Section: Authentic Instagram Direct Feed (Листается вверх и вниз в редакторе, аккуратно фиксируется при экспорте) */}
         <div
           ref={feedContainerRef}
           data-chat-feed="true"
           onScroll={handleScroll}
-          className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain px-3.5 pt-2 pb-2 relative z-10 no-scrollbar touch-pan-y"
+          className={`flex-1 min-h-0 ${
+            isExporting
+              ? isScrolledUp
+                ? 'overflow-hidden flex flex-col justify-start'
+                : 'overflow-hidden flex flex-col justify-end'
+              : 'overflow-y-auto'
+          } overflow-x-hidden overscroll-contain px-3.5 pt-2 pb-2 relative z-10 no-scrollbar touch-pan-y`}
           style={{
             WebkitOverflowScrolling: 'touch',
             scrollbarWidth: 'none',
             msOverflowStyle: 'none',
           }}
         >
-          <div data-chat-feed-inner="true" className="min-h-full flex flex-col">
+          <div
+            data-chat-feed-inner="true"
+            className={`w-full min-h-full flex flex-col ${
+              isExporting && isScrolledUp ? 'justify-start' : 'justify-end'
+            } shrink-0`}
+          >
             {/* Authentic Instagram Profile Header at start of chat */}
-            {settings.showProfileIntro && (
+            {settings.showProfileIntro && (!isExporting || isScrolledUp || messages.length <= 4) && (
               <div className="flex flex-col items-center text-center pt-1 pb-3 mb-2 shrink-0 select-none">
               {/* Profile Avatar (Clean, no story ring - story ring is only on the small header avatar) */}
               <div className="relative mb-2 shrink-0">
@@ -178,8 +189,12 @@ export const InstagramChatCanvas = forwardRef<HTMLDivElement, InstagramChatCanva
             </div>
           )}
 
-            {/* Messages Block (mt-auto keeps messages at bottom when dialogue is short, and expands to scroll when long) */}
-            <div className="mt-auto flex flex-col">
+            {/* Messages Block (flex-col shrink-0 guarantees message bubbles never collapse to 0 height) */}
+            <div
+              className={`${
+                isExporting && isScrolledUp ? 'mt-0' : 'mt-auto'
+              } flex flex-col w-full shrink-0`}
+            >
               {/* Timestamp Divider */}
               {settings.dateDivider && (
                 <div className="text-center my-2.5">
@@ -199,7 +214,7 @@ export const InstagramChatCanvas = forwardRef<HTMLDivElement, InstagramChatCanva
               )}
 
               {/* Messages List */}
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-1.5 shrink-0">
                 {messages.map((msg, idx) => {
                   const prevMsg = messages[idx - 1];
                   const nextMsg = messages[idx + 1];

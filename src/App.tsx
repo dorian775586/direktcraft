@@ -453,46 +453,20 @@ export default function App() {
     setSelectedMessageId(null);
     triggerHaptic('medium');
 
-    const feedContainer = captureRef.current.querySelector(
-      '[data-chat-feed="true"]'
-    ) as HTMLElement | null;
-    const feedInner =
-      (feedContainer?.querySelector('[data-chat-feed-inner="true"]') as HTMLElement | null) ||
-      (feedContainer?.firstElementChild as HTMLElement | null);
-
-    let savedScrollTop = 0;
-    let appliedTransform = false;
-
     try {
-      // 1. Ensure all images (header avatar, DM incoming avatars) are inlined as base64 data URIs
+      // 1. Give React time to commit the export state (unselecting message, switching feed to export layout)
+      await new Promise((resolve) => setTimeout(resolve, 80));
+
+      if (!captureRef.current) return;
+
+      // 2. Ensure all images (header avatar, DM incoming avatars) are inlined as base64 data URIs
       await ensureAllImagesInlinedAsDataUris(captureRef.current);
-
-      // 2. SVG foreignObject in html-to-image always renders with scrollTop=0.
-      // Compensate by translating feedInner upward by the current/effective scroll offset:
-      if (feedContainer && feedInner) {
-        savedScrollTop = feedContainer.scrollTop;
-        const maxScroll = Math.max(0, feedContainer.scrollHeight - feedContainer.clientHeight);
-
-        // If user is at the bottom or dialogue overflows, ensure messages are visible in the snapshot
-        const targetScroll = savedScrollTop > 0 ? savedScrollTop : maxScroll;
-
-        if (targetScroll > 0) {
-          feedInner.style.transform = `translateY(-${targetScroll}px)`;
-          feedContainer.scrollTop = 0;
-          appliedTransform = true;
-        }
-      }
-
-      // 3. Wait two frames so any selection highlight disappears and transform paints before DOM capture
-      await new Promise<void>((resolve) =>
-        requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
-      );
 
       const filename = `instagram-direct-${activeCharacter.username}${
         isProUnlocked ? '' : '-demo'
       }.png`;
 
-      // 4. Explicit pixel dimensions prevent SVG foreignObject flex layout collapse
+      // 3. Explicit pixel dimensions prevent SVG foreignObject flex layout collapse
       const nodeWidth = captureRef.current.offsetWidth || 393;
       const nodeHeight = captureRef.current.offsetHeight || Math.round((nodeWidth * 16) / 9);
 
@@ -518,7 +492,7 @@ export default function App() {
 
       setCapturedPngUrl(dataUrl);
 
-      // 5. Trigger automatic reliable Blob download
+      // 4. Trigger automatic reliable Blob download
       downloadImageFile(dataUrl, filename);
 
       triggerHaptic('success');
@@ -554,11 +528,6 @@ export default function App() {
       }
       showToast('Не удалось сформировать PNG. Попробуйте еще раз.');
     } finally {
-      // 6. ALWAYS restore feed container scroll position and remove transform
-      if (appliedTransform && feedInner && feedContainer) {
-        feedInner.style.transform = '';
-        feedContainer.scrollTop = savedScrollTop;
-      }
       setIsExporting(false);
     }
   };
