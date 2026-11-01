@@ -21,28 +21,22 @@ export function createBlobUrlFromDataUrl(dataUrl: string): string {
   return URL.createObjectURL(blob);
 }
 
+export function isMobileDevice(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent || '';
+  const isMobileUA = /iPhone|iPad|iPod|Android|Mobile/i.test(ua);
+  const isTouchScreen =
+    typeof window !== 'undefined' &&
+    ('ontouchstart' in window || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0));
+  return isMobileUA || (Boolean(isTouchScreen) && typeof window !== 'undefined' && window.innerWidth < 1024);
+}
+
 export function downloadImageFile(dataUrl: string, filename: string): boolean {
   try {
     const blob = dataUrlToBlob(dataUrl);
     const blobUrl = URL.createObjectURL(blob);
 
-    // 1. In Telegram WebApp environment, attempt native downloadFile if client supports it
-    if (typeof window !== 'undefined' && window.Telegram?.WebApp?.downloadFile) {
-      try {
-        window.Telegram.WebApp.downloadFile(
-          { url: blobUrl, file_name: filename },
-          (success: boolean) => {
-            if (success) {
-              console.log('Telegram native download initiated');
-            }
-          }
-        );
-      } catch (tgErr) {
-        console.warn('Telegram downloadFile call error:', tgErr);
-      }
-    }
-
-    // 2. Standard DOM anchor download
+    // Standard DOM anchor download (Works great on desktop Chrome, Firefox, Edge, and Android Chrome)
     const link = document.createElement('a');
     link.href = blobUrl;
     link.download = filename;
@@ -83,11 +77,18 @@ export function downloadImageFile(dataUrl: string, filename: string): boolean {
 }
 
 export async function shareOrSaveImage(dataUrl: string, filename: string): Promise<boolean> {
+  const isMobile = isMobileDevice();
+  const blob = dataUrlToBlob(dataUrl);
+
+  // 1. Try Web Share API with File payload (the only native API that triggers "Сохранить изображение" on iOS / Android)
   try {
-    const blob = dataUrlToBlob(dataUrl);
     const file = new File([blob], filename, { type: blob.type || 'image/png' });
 
-    if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [file] })) {
+    if (
+      typeof navigator !== 'undefined' &&
+      navigator.canShare &&
+      navigator.canShare({ files: [file] })
+    ) {
       await navigator.share({
         files: [file],
         title: 'Instagram Direct',
@@ -96,12 +97,28 @@ export async function shareOrSaveImage(dataUrl: string, filename: string): Promi
     }
   } catch (err: unknown) {
     if (err instanceof Error && err.name === 'AbortError') {
+      // User closed the native share dialog intentionally
       return true;
     }
-    console.warn('Share not completed, trying fallback download:', err);
+    console.warn('Share with file payload not completed, trying fallback:', err);
   }
 
-  // Fallback to file download
+  // 2. On mobile, if Web Share is unavailable (e.g. restrictive iframe or older browser),
+  // open the image in a new tab/window so the user can easily tap or hold to save to Photos
+  if (isMobile) {
+    try {
+      const blobUrl = URL.createObjectURL(blob);
+      const newWin = window.open(blobUrl, '_blank');
+      if (newWin) {
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
+        return true;
+      }
+    } catch {
+      // window.open blocked, continue to standard download
+    }
+  }
+
+  // 3. Fallback to standard anchor download
   return downloadImageFile(dataUrl, filename);
 }
 

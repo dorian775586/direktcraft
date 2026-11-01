@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Download, X, Share2, Copy, Check, ArrowLeft, ExternalLink } from 'lucide-react';
 import { TelegramStarIcon } from './StarsPaymentModal';
-import { downloadImageFile, shareOrSaveImage, copyImageToClipboard, createBlobUrlFromDataUrl } from '../utils/download';
+import {
+  downloadImageFile,
+  shareOrSaveImage,
+  copyImageToClipboard,
+  createBlobUrlFromDataUrl,
+  isMobileDevice,
+} from '../utils/download';
 import { triggerHaptic } from '../utils/telegram';
 
 interface ScreenshotResultModalProps {
@@ -21,6 +27,7 @@ export const ScreenshotResultModal: React.FC<ScreenshotResultModalProps> = ({
 }) => {
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const [isCopied, setIsCopied] = useState(false);
+  const isMobile = isMobileDevice();
 
   useEffect(() => {
     if (imageDataUrl) {
@@ -38,16 +45,22 @@ export const ScreenshotResultModal: React.FC<ScreenshotResultModalProps> = ({
 
   if (!imageDataUrl) return null;
 
-  const handleDownloadClick = () => {
-    // Do NOT preventDefault! Let the native <a download> click trigger naturally.
+  const handlePrimarySave = async () => {
     triggerHaptic('success');
-    // Also trigger programmatic downloadImageFile fallback
-    downloadImageFile(imageDataUrl, filename);
-  };
-
-  const handleShare = async () => {
-    triggerHaptic('medium');
-    await shareOrSaveImage(imageDataUrl, filename);
+    if (isMobile) {
+      // On mobile (iOS / Android / Telegram WebApp), trigger the native system share/save sheet
+      const shared = await shareOrSaveImage(imageDataUrl, filename);
+      if (!shared) {
+        // Fallback: open in full screen tab so user can hold-to-save
+        const targetUrl = blobUrl || imageDataUrl;
+        if (targetUrl) {
+          window.open(targetUrl, '_blank');
+        }
+      }
+    } else {
+      // Desktop: instant standard browser download
+      downloadImageFile(imageDataUrl, filename);
+    }
   };
 
   const handleCopy = async () => {
@@ -126,43 +139,49 @@ export const ScreenshotResultModal: React.FC<ScreenshotResultModalProps> = ({
 
         {/* Mobile / Telegram Hint */}
         <div className="mt-2.5 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-center shrink-0">
-          <p className="text-[11px] text-zinc-300 leading-tight">
-            💡 <span className="font-semibold text-white">На телефоне:</span> нажмите <span className="text-emerald-400 font-semibold">«В галерею»</span> или зажмите фото пальцем на 1 сек → <span className="text-[#0095F6] font-semibold">«Сохранить в Фото»</span>.
+          <p className="text-[11.5px] text-zinc-300 leading-snug">
+            📲 <span className="font-semibold text-white">На телефоне:</span> нажмите синюю кнопку <span className="text-[#0095F6] font-semibold">«Сохранить фото»</span> (откроется меню «Сохранить в Фото» iPhone / Android) или зажмите картинку пальцем на 1 сек → <span className="text-emerald-400 font-semibold">«Сохранить в Фото»</span>.
           </p>
         </div>
 
         {/* Actions Grid */}
         <div className="mt-2.5 flex flex-col gap-2 shrink-0">
+          {/* Primary Action Button: Wide, High-contrast, Unmistakable */}
+          <button
+            type="button"
+            onClick={handlePrimarySave}
+            className="w-full min-h-[48px] px-4 rounded-2xl bg-[#0095F6] hover:bg-[#0081D6] active:scale-[0.99] text-white text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg shadow-[#0095F6]/25"
+          >
+            {isMobile ? (
+              <>
+                <Share2 className="w-5 h-5 shrink-0" />
+                <span>Сохранить в Фото / Скачать</span>
+              </>
+            ) : (
+              <>
+                <Download className="w-5 h-5 shrink-0" />
+                <span>Скачать скриншот (PNG)</span>
+              </>
+            )}
+          </button>
+
           <div className="grid grid-cols-2 gap-2">
-            {/* Native Mobile Share / Save to Gallery - PRIMARY on mobile */}
+            {/* Open Original in New Tab / Fullscreen */}
             <button
               type="button"
-              onClick={handleShare}
-              className="min-h-[44px] px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-md"
-              title="Открыть системное меню сохранения в фото"
+              onClick={handleOpenOriginal}
+              className="min-h-[40px] px-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-zinc-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              title="Открыть картинку в новой вкладке"
             >
-              <Share2 className="w-4 h-4 shrink-0" />
-              <span>В галерею / Фото</span>
+              <ExternalLink className="w-3.5 h-3.5 shrink-0 text-[#0095F6]" />
+              <span className="truncate">Открыть на весь экран</span>
             </button>
 
-            {/* Direct <a> Tag Download for Browsers */}
-            <a
-              href={blobUrl || imageDataUrl}
-              download={filename}
-              onClick={handleDownloadClick}
-              className="min-h-[44px] px-3 rounded-xl bg-[#0095F6] hover:bg-[#0081D6] text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer text-center no-underline shadow-md"
-            >
-              <Download className="w-4 h-4 shrink-0" />
-              <span>Скачать PNG</span>
-            </a>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
             {/* Copy Button */}
             <button
               type="button"
               onClick={handleCopy}
-              className="min-h-[38px] px-3 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-zinc-300 text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              className="min-h-[40px] px-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-zinc-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
             >
               {isCopied ? (
                 <>
@@ -176,17 +195,18 @@ export const ScreenshotResultModal: React.FC<ScreenshotResultModalProps> = ({
                 </>
               )}
             </button>
+          </div>
 
-            {/* Open Original in New Tab */}
-            <button
-              type="button"
-              onClick={handleOpenOriginal}
-              className="min-h-[38px] px-3 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-zinc-300 text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-              title="Открыть картинку в новой вкладке"
+          {/* Direct download fallback for browsers */}
+          <div className="text-center pt-0.5">
+            <a
+              href={blobUrl || imageDataUrl}
+              download={filename}
+              onClick={() => triggerHaptic('light')}
+              className="text-[11px] text-zinc-400 hover:text-white underline underline-offset-2 transition-colors cursor-pointer"
             >
-              <ExternalLink className="w-3.5 h-3.5 shrink-0" />
-              <span className="truncate">Открыть фото</span>
-            </button>
+              Или нажать сюда для прямой загрузки файла ({filename})
+            </a>
           </div>
 
           {!isProUnlocked && (

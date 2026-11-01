@@ -3,7 +3,7 @@ import { toPng } from 'html-to-image';
 import { Character, ChatMessage, DeviceSettings, SavedChat } from './types/chat';
 import { CELEBRITY_CHARACTERS, DEFAULT_CUSTOM_AVATAR } from './data/characters';
 import { initTelegramMiniApp, triggerHaptic, updateTelegramBackButton } from './utils/telegram';
-import { downloadImageFile } from './utils/download';
+import { downloadImageFile, shareOrSaveImage, isMobileDevice } from './utils/download';
 import { CharacterRoster } from './components/CharacterRoster';
 import { InstagramChatCanvas } from './components/InstagramChatCanvas';
 import { MessageConstructorPanel } from './components/MessageConstructorPanel';
@@ -492,8 +492,14 @@ export default function App() {
 
       setCapturedPngUrl(dataUrl);
 
-      // 4. Trigger automatic reliable Blob download
-      downloadImageFile(dataUrl, filename);
+      // 4. Trigger automatic reliable save / download
+      if (isMobileDevice()) {
+        shareOrSaveImage(dataUrl, filename).catch(() => {
+          downloadImageFile(dataUrl, filename);
+        });
+      } else {
+        downloadImageFile(dataUrl, filename);
+      }
 
       triggerHaptic('success');
       showToast('Скриншот готов!');
@@ -518,7 +524,13 @@ export default function App() {
           const filename = `instagram-direct-${activeCharacter.username}${
             isProUnlocked ? '' : '-demo'
           }.png`;
-          downloadImageFile(fallbackDataUrl, filename);
+          if (isMobileDevice()) {
+            shareOrSaveImage(fallbackDataUrl, filename).catch(() => {
+              downloadImageFile(fallbackDataUrl, filename);
+            });
+          } else {
+            downloadImageFile(fallbackDataUrl, filename);
+          }
           triggerHaptic('success');
           showToast('Скриншот готов!');
           return;
